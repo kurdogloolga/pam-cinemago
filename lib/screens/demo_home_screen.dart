@@ -5,6 +5,7 @@ import 'booking_confirmation_screen.dart';
 import 'movie_detail_screen.dart';
 import 'my_tickets_screen.dart';
 import 'movies_screen.dart';
+import 'profile_screen.dart';
 import 'screening_selection_screen.dart';
 import 'seat_selection_screen.dart';
 
@@ -73,6 +74,11 @@ class DemoHomeScreen extends StatelessWidget {
             title: 'Мои билеты',
             icon: Icons.confirmation_number_outlined,
             onTap: () => _open(context, const MyTicketsScreen()),
+          ),
+          _DemoDestination(
+            title: 'Профиль',
+            icon: Icons.person_outline,
+            onTap: () => _open(context, const ProfileScreen()),
           ),
         ],
       ),
