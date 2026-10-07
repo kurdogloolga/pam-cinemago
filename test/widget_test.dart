@@ -1,5 +1,6 @@
 import 'package:cinemago/data/mock_data.dart';
 import 'package:cinemago/screens/booking_confirmation_screen.dart';
+import 'package:cinemago/screens/my_tickets_screen.dart';
 import 'package:cinemago/screens/seat_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,5 +74,17 @@ void main() {
     );
 
     expect(find.text('190 MDL'), findsNWidgets(2));
+  });
+
+  testWidgets('my tickets shows reservation details and statuses', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: MyTicketsScreen()));
+
+    expect(find.text('Ваши бронирования'), findsOneWidget);
+    expect(mockReservations, hasLength(6));
+    expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(find.text('Подтверждено'), findsOneWidget);
+    expect(find.text('Места E4, E5'), findsOneWidget);
   });
 }
