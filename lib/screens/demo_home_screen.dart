@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/mock_data.dart';
 import 'booking_confirmation_screen.dart';
+import 'login_screen.dart';
 import 'movie_detail_screen.dart';
 import 'my_tickets_screen.dart';
 import 'movies_screen.dart';
@@ -35,6 +36,11 @@ class DemoHomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          _DemoDestination(
+            title: 'Вход / регистрация',
+            icon: Icons.login,
+            onTap: () => _open(context, const LoginScreen()),
+          ),
           _DemoDestination(
             title: 'Афиша фильмов',
             icon: Icons.local_movies_outlined,

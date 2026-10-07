@@ -1,5 +1,6 @@
 import 'package:cinemago/data/mock_data.dart';
 import 'package:cinemago/screens/booking_confirmation_screen.dart';
+import 'package:cinemago/screens/login_screen.dart';
 import 'package:cinemago/screens/my_tickets_screen.dart';
 import 'package:cinemago/screens/profile_screen.dart';
 import 'package:cinemago/screens/seat_selection_screen.dart';
@@ -112,5 +113,22 @@ void main() {
     );
     expect(find.text('Помощь и поддержка'), findsOneWidget);
     expect(find.text('Выйти из аккаунта'), findsOneWidget);
+  });
+
+  testWidgets('login screen has static email and obscured password fields', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+
+    expect(find.text('Вход / регистрация'), findsOneWidget);
+    expect(find.text('Электронная почта'), findsOneWidget);
+    expect(find.text('Пароль'), findsOneWidget);
+    expect(find.text('Войти'), findsOneWidget);
+    expect(find.text('Зарегистрируйтесь'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(2));
+    expect(
+      tester.widget<TextField>(find.byType(TextField).at(1)).obscureText,
+      isTrue,
+    );
   });
 }
