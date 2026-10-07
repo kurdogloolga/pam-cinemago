@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/movies_screen.dart';
 import 'data/mock_data.dart';
-import 'screens/movie_detail_screen.dart';
+import 'screens/seat_selection_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -20,7 +19,10 @@ class MyApp extends StatelessWidget {
           titleLarge: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      home: MovieDetailScreen(movie: mockMovies.first)
+      home: SeatSelectionScreen(
+        movie: mockMovies.first,
+        screening: mockScreenings.first,
+      ),
     );
   }
 }

@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:cinemago/data/mock_data.dart';
+import 'package:cinemago/screens/seat_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:cinemago/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('seat map has 8 rows of 10 seats and supports selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SeatSelectionScreen(
+          movie: mockMovies.first,
+          screening: mockScreenings.first,
+        ),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.key is ValueKey<String>,
+      ),
+      findsNWidgets(80),
+    );
+    expect(find.text('Выберите места'), findsNWidgets(2));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.drag(find.byType(ListView), const Offset(0, -350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seat-C1')));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Продолжить · 95 MDL'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('seat-A1')));
+    await tester.pump();
+
+    expect(find.text('Продолжить · 95 MDL'), findsOneWidget);
   });
 }
