@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/movies_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -11,15 +12,13 @@ class MyApp extends StatelessWidget {
       title: 'CinemaGo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE53935), // насыщенный красный — ассоциация с кино/билетами
+          seedColor: const Color(0xFFE53935),
         ),
         textTheme: const TextTheme(
           titleLarge: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      home: const Scaffold(
-        body: Center(child: Text('CinemaGo — скоро здесь будут экраны')),
-      ),
+      home: const MoviesScreen(),
     );
   }
 }
