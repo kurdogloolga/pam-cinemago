@@ -1,6 +1,7 @@
-// screens/movie_detail_screen.dart — детали фильма: описание, длительность, рейтинг, сеансы
+// screens/movie_detail_screen.dart — карточка фильма: постер, описание, длительность, рейтинг, сеансы
 import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
+import '../widgets/movie_poster.dart';
 
 class MovieDetailScreen extends StatelessWidget {
   final Movie movie;
@@ -10,67 +11,118 @@ class MovieDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final screenings =
         mockScreenings.where((s) => s.movieId == movie.id).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(movie.title)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              Icons.movie,
-              size: 64,
-              color: scheme.onPrimaryContainer,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: FilledButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.confirmation_number_outlined),
+            label: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('Выбрать сеанс'),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(movie.title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.timer_outlined, size: 18, color: scheme.primary),
-              const SizedBox(width: 4),
-              Text('${movie.durationMin} мин'),
-              const SizedBox(width: 16),
-              Icon(Icons.local_movies_outlined, size: 18, color: scheme.primary),
-              const SizedBox(width: 4),
-              Text(movie.genre),
-              const SizedBox(width: 16),
-              Icon(Icons.star, size: 18, color: scheme.primary),
-              const SizedBox(width: 4),
-              Text(movie.rating.toStringAsFixed(1)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            movie.description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-          Text('Доступные сеансы', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Card(
-            child: Column(
-              children: screenings
-                  .map(
-                    (s) => ListTile(
-                      leading: Icon(Icons.schedule, color: scheme.primary),
-                      title: Text('${s.day} · ${s.time}'),
-                      subtitle: Text(s.hall),
-                      trailing: Text(
-                        '${s.price.toStringAsFixed(0)} MDL',
-                        style: Theme.of(context).textTheme.titleSmall,
+        ),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 320,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  MoviePoster(movie: movie, iconSize: 96),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          scheme.surface.withValues(alpha: 0),
+                          scheme.surface,
+                        ],
+                        stops: const [0.5, 1.0],
                       ),
                     ),
-                  )
-                  .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    movie.title,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${movie.year} · ${movie.director}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(
+                        avatar: Icon(Icons.star, size: 18, color: scheme.primary),
+                        label: Text('${movie.rating.toStringAsFixed(1)} рейтинг'),
+                      ),
+                      Chip(
+                        avatar: Icon(Icons.timer_outlined, size: 18, color: scheme.primary),
+                        label: Text('${movie.durationMin} мин'),
+                      ),
+                      Chip(
+                        avatar: Icon(Icons.local_movies_outlined, size: 18, color: scheme.primary),
+                        label: Text(movie.genre),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text('О фильме', style: textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    movie.description,
+                    style: textTheme.bodyLarge?.copyWith(height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Доступные сеансы', style: textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Column(
+                      children: screenings
+                          .map(
+                            (s) => ListTile(
+                              leading: Icon(Icons.schedule, color: scheme.primary),
+                              title: Text('${s.day} · ${s.time}'),
+                              subtitle: Text(s.hall),
+                              trailing: Text(
+                                '${s.price.toStringAsFixed(0)} MDL',
+                                style: textTheme.titleSmall,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
