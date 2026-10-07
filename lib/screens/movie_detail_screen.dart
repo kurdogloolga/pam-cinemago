@@ -13,7 +13,8 @@ class MovieDetailScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenings =
-        mockScreenings.where((s) => s.movieId == movie.id).toList();
+        mockScreenings.where((s) => s.movieId == movie.id).toList()
+          ..sort((first, second) => first.dateTime.compareTo(second.dateTime));
 
     return Scaffold(
       bottomNavigationBar: SafeArea(

@@ -4,46 +4,36 @@ import '../data/mock_data.dart';
 import '../widgets/movie_poster.dart';
 import 'seat_selection_screen.dart';
 
-class ScreeningSelectionScreen extends StatefulWidget {
+class ScreeningSelectionScreen extends StatelessWidget {
   final Movie movie;
 
   const ScreeningSelectionScreen({super.key, required this.movie});
-
-  @override
-  State<ScreeningSelectionScreen> createState() =>
-      _ScreeningSelectionScreenState();
-}
-
-class _ScreeningSelectionScreenState extends State<ScreeningSelectionScreen> {
-  String? _selectedDay;
-  String? _selectedScreeningId;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenings = mockScreenings
-        .where((screening) => screening.movieId == widget.movie.id)
-        .toList();
+        .where((screening) => screening.movieId == movie.id)
+        .toList()
+      ..sort(
+        (first, second) => first.dateTime.compareTo(second.dateTime),
+      );
     final days = screenings.map((screening) => screening.day).toSet().toList();
-    final selectedDay = days.contains(_selectedDay)
-        ? _selectedDay
-        : days.firstOrNull;
+    final selectedDay = days.firstOrNull;
     final dayScreenings = screenings
         .where((screening) => screening.day == selectedDay)
         .toList();
-    final selectedScreening = screenings
-        .where((screening) => screening.id == _selectedScreeningId)
-        .firstOrNull;
+    final selectedScreening = dayScreenings.firstOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Выбор сеанса'), centerTitle: true),
       body: screenings.isEmpty
-          ? _EmptyScreenings(movieTitle: widget.movie.title)
+          ? _EmptyScreenings(movieTitle: movie.title)
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
               children: [
-                _MovieHeader(movie: widget.movie),
+                _MovieHeader(movie: movie),
                 const SizedBox(height: 28),
                 Text(
                   'Выберите дату',
@@ -67,12 +57,6 @@ class _ScreeningSelectionScreenState extends State<ScreeningSelectionScreen> {
                         date: parts.first,
                         month: parts.length > 1 ? parts[1] : '',
                         selected: isSelected,
-                        onTap: () {
-                          setState(() {
-                            _selectedDay = day;
-                            _selectedScreeningId = null;
-                          });
-                        },
                       );
                     },
                   ),
@@ -102,9 +86,7 @@ class _ScreeningSelectionScreenState extends State<ScreeningSelectionScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _ScreeningCard(
                       screening: screening,
-                      selected: screening.id == _selectedScreeningId,
-                      onTap: () =>
-                          setState(() => _selectedScreeningId = screening.id),
+                      selected: screening.id == selectedScreening?.id,
                     ),
                   ),
                 ),
@@ -131,7 +113,7 @@ class _ScreeningSelectionScreenState extends State<ScreeningSelectionScreen> {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (context) => SeatSelectionScreen(
-                                movie: widget.movie,
+                                movie: movie,
                                 screening: selectedScreening,
                               ),
                             ),
@@ -244,13 +226,11 @@ class _DayChip extends StatelessWidget {
   final String date;
   final String month;
   final bool selected;
-  final VoidCallback onTap;
 
   const _DayChip({
     required this.date,
     required this.month,
     required this.selected,
-    required this.onTap,
   });
 
   @override
@@ -258,34 +238,30 @@ class _DayChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Material(
-      color: selected ? scheme.primary : scheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      width: 76,
+      decoration: BoxDecoration(
+        color: selected ? scheme.primary : scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          width: 76,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                date,
-                style: textTheme.titleMedium?.copyWith(
-                  color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                month,
-                style: textTheme.labelSmall?.copyWith(
-                  color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            date,
+            style: textTheme.titleMedium?.copyWith(
+              color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
+          Text(
+            month,
+            style: textTheme.labelSmall?.copyWith(
+              color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -294,12 +270,10 @@ class _DayChip extends StatelessWidget {
 class _ScreeningCard extends StatelessWidget {
   final Screening screening;
   final bool selected;
-  final VoidCallback onTap;
 
   const _ScreeningCard({
     required this.screening,
     required this.selected,
-    required this.onTap,
   });
 
   @override
@@ -307,75 +281,68 @@ class _ScreeningCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Material(
-      color: selected ? scheme.primaryContainer : scheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      decoration: BoxDecoration(
+        color: selected ? scheme.primaryContainer : scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: selected ? scheme.primary : Colors.transparent,
-              width: 1.5,
+        border: Border.all(
+          color: selected ? scheme.primary : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: selected
+                  ? scheme.primary.withValues(alpha: 0.12)
+                  : scheme.surface,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.schedule_rounded,
+              color: scheme.primary,
+              size: 23,
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? scheme.primary.withValues(alpha: 0.12)
-                      : scheme.surface,
-                  borderRadius: BorderRadius.circular(14),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  screening.time,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                child: Icon(
-                  Icons.schedule_rounded,
-                  color: scheme.primary,
-                  size: 23,
+                const SizedBox(height: 3),
+                Text(
+                  screening.hall,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      screening.time,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      screening.hall,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${screening.price.toStringAsFixed(0)} MDL',
-                style: textTheme.titleSmall?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                selected ? Icons.check_circle : Icons.chevron_right,
-                color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                size: 21,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Text(
+            '${screening.price.toStringAsFixed(0)} MDL',
+            style: textTheme.titleSmall?.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            selected ? Icons.check_circle : Icons.chevron_right,
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            size: 21,
+          ),
+        ],
       ),
     );
   }

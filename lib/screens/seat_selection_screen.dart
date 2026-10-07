@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../data/mock_data.dart';
+import 'booking_confirmation_screen.dart';
 
-class SeatSelectionScreen extends StatefulWidget {
+class SeatSelectionScreen extends StatelessWidget {
   final Movie movie;
   final Screening screening;
+
+  static const _previewSelectedSeats = {'C4', 'C5'};
 
   const SeatSelectionScreen({
     super.key,
@@ -13,38 +16,20 @@ class SeatSelectionScreen extends StatefulWidget {
   });
 
   @override
-  State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
-}
-
-class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
-  static const _rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  static const _seatCount = 10;
-  final Set<String> _selectedSeats = {};
-
-  String _seatId(int row, int seat) => '${_rowLabels[row]}${seat + 1}';
-
-  void _toggleSeat(String seatId) {
-    if (widget.screening.seatsTaken.contains(seatId)) return;
-
-    setState(() {
-      if (!_selectedSeats.add(seatId)) {
-        _selectedSeats.remove(seatId);
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final total = widget.screening.price * _selectedSeats.length;
+    final selectedSeats = _previewSelectedSeats
+        .where((seat) => !screening.seatsTaken.contains(seat))
+        .toSet();
+    final total = screening.price * selectedSeats.length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Выбор мест'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          _ScreeningSummary(movie: widget.movie, screening: widget.screening),
+          _ScreeningSummary(movie: movie, screening: screening),
           const SizedBox(height: 28),
           Text(
             'Выберите места',
@@ -52,7 +37,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Нажмите на свободное место, чтобы выбрать его',
+            'Схема показывает свободные, занятые и выбранные места',
             style: textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -71,12 +56,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           ),
           const SizedBox(height: 28),
           _SeatGrid(
-            rowLabels: _rowLabels,
-            seatCount: _seatCount,
-            takenSeats: widget.screening.seatsTaken.toSet(),
-            selectedSeats: _selectedSeats,
-            seatId: _seatId,
-            onSeatTap: _toggleSeat,
+            takenSeats: screening.seatsTaken.toSet(),
+            selectedSeats: selectedSeats,
           ),
           const SizedBox(height: 28),
           const _SeatLegend(),
@@ -93,9 +74,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _selectedSeats.isEmpty
+                    selectedSeats.isEmpty
                         ? 'Места не выбраны'
-                        : 'Выбрано мест: ${_selectedSeats.length}',
+                        : 'Выбрано мест: ${selectedSeats.length}',
                     style: textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -118,18 +99,18 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: FilledButton(
-            onPressed: _selectedSeats.isEmpty
+            onPressed: selectedSeats.isEmpty
                 ? null
                 : () {
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Выбраны места: ${_selectedSeats.join(', ')}',
-                          ),
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => BookingConfirmationScreen(
+                          movie: movie,
+                          screening: screening,
+                          seats: selectedSeats.toList(),
                         ),
-                      );
+                      ),
+                    );
                   },
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(54),
@@ -138,7 +119,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               ),
             ),
             child: Text(
-              _selectedSeats.isEmpty
+              selectedSeats.isEmpty
                   ? 'Выберите места'
                   : 'Продолжить · ${total.toStringAsFixed(0)} MDL',
             ),
@@ -254,26 +235,20 @@ class _CinemaScreen extends StatelessWidget {
 }
 
 class _SeatGrid extends StatelessWidget {
-  final List<String> rowLabels;
-  final int seatCount;
   final Set<String> takenSeats;
   final Set<String> selectedSeats;
-  final String Function(int row, int seat) seatId;
-  final ValueChanged<String> onSeatTap;
 
   const _SeatGrid({
-    required this.rowLabels,
-    required this.seatCount,
     required this.takenSeats,
     required this.selectedSeats,
-    required this.seatId,
-    required this.onSeatTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    const rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const seatCount = 10;
 
     return Column(
       children: [
@@ -312,10 +287,10 @@ class _SeatGrid extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: _Seat(
-                      id: seatId(row, seat),
-                      taken: takenSeats.contains(seatId(row, seat)),
-                      selected: selectedSeats.contains(seatId(row, seat)),
-                      onTap: onSeatTap,
+                        id: '${rowLabels[row]}${seat + 1}',
+                        taken: takenSeats.contains('${rowLabels[row]}${seat + 1}'),
+                        selected:
+                            selectedSeats.contains('${rowLabels[row]}${seat + 1}'),
                     ),
                   ),
                 ),
@@ -333,13 +308,11 @@ class _Seat extends StatelessWidget {
   final String id;
   final bool taken;
   final bool selected;
-  final ValueChanged<String> onTap;
 
   const _Seat({
     required this.id,
     required this.taken,
     required this.selected,
-    required this.onTap,
   });
 
   @override
@@ -354,8 +327,6 @@ class _Seat extends StatelessWidget {
 
     return Semantics(
       key: ValueKey('seat-$id'),
-      button: !taken,
-      enabled: !taken,
       label:
           'Ряд ${id[0]}, место ${id.substring(1)}'
           '${taken
@@ -368,24 +339,20 @@ class _Seat extends StatelessWidget {
         child: Material(
           color: background,
           borderRadius: BorderRadius.circular(7),
-          child: InkWell(
-            onTap: taken ? null : () => onTap(id),
-            borderRadius: BorderRadius.circular(7),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(
-                  color: taken
-                      ? Colors.transparent
-                      : selected
-                      ? scheme.primary
-                      : scheme.outlineVariant,
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: taken
+                    ? Colors.transparent
+                    : selected
+                    ? scheme.primary
+                    : scheme.outlineVariant,
               ),
-              child: selected
-                  ? Icon(Icons.check, size: 15, color: foreground)
-                  : null,
             ),
+            child: selected
+                ? Icon(Icons.check, size: 15, color: foreground)
+                : null,
           ),
         ),
       ),

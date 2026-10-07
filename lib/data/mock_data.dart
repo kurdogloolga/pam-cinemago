@@ -160,8 +160,7 @@ class Screening {
   final String id;
   final String movieId;
   final String hall;
-  final String day;
-  final String time;
+  final DateTime dateTime;
   final double price;
   final List<String> seatsTaken;
 
@@ -169,49 +168,69 @@ class Screening {
     required this.id,
     required this.movieId,
     required this.hall,
-    required this.day,
-    required this.time,
+    required this.dateTime,
     required this.price,
     required this.seatsTaken,
   });
+
+  String get day => '${dateTime.day} ${_russianMonths[dateTime.month - 1]}';
+
+  String get time =>
+      '${dateTime.hour.toString().padLeft(2, '0')}:'
+      '${dateTime.minute.toString().padLeft(2, '0')}';
 }
 
-const mockScreenings = [
-  Screening(id: 's1', movieId: 'm1', hall: 'Зал 1', day: '08 окт', time: '18:00', price: 95, seatsTaken: ['A1', 'A2', 'B5']),
-  Screening(id: 's2', movieId: 'm1', hall: 'Зал 1', day: '08 окт', time: '21:00', price: 110, seatsTaken: ['C3']),
-  Screening(id: 's3', movieId: 'm1', hall: 'Зал 3', day: '09 окт', time: '19:30', price: 95, seatsTaken: []),
-  Screening(id: 's4', movieId: 'm2', hall: 'Зал 2', day: '08 окт', time: '20:15', price: 85, seatsTaken: ['D4', 'D5']),
-  Screening(id: 's5', movieId: 'm2', hall: 'Зал 2', day: '09 окт', time: '22:00', price: 85, seatsTaken: []),
-  Screening(id: 's6', movieId: 'm3', hall: 'Зал 1', day: '08 окт', time: '17:30', price: 90, seatsTaken: ['A1']),
-  Screening(id: 's7', movieId: 'm3', hall: 'Зал 4', day: '10 окт', time: '20:00', price: 90, seatsTaken: []),
-  Screening(id: 's8', movieId: 'm4', hall: 'Зал 3', day: '08 окт', time: '16:00', price: 80, seatsTaken: []),
-  Screening(id: 's9', movieId: 'm4', hall: 'Зал 3', day: '09 окт', time: '18:30', price: 80, seatsTaken: ['B2', 'B3']),
-  Screening(id: 's10', movieId: 'm5', hall: 'Зал 2', day: '08 окт', time: '19:00', price: 85, seatsTaken: []),
-  Screening(id: 's11', movieId: 'm5', hall: 'Зал 2', day: '10 окт', time: '21:30', price: 85, seatsTaken: ['A5']),
-  Screening(id: 's12', movieId: 'm6', hall: 'Зал 1', day: '09 окт', time: '20:45', price: 95, seatsTaken: []),
-  Screening(id: 's13', movieId: 'm6', hall: 'Зал 4', day: '10 окт', time: '18:00', price: 95, seatsTaken: ['C1', 'C2']),
-  Screening(id: 's14', movieId: 'm7', hall: 'Зал 3', day: '08 окт', time: '12:00', price: 75, seatsTaken: []),
-  Screening(id: 's15', movieId: 'm7', hall: 'Зал 3', day: '09 окт', time: '14:30', price: 75, seatsTaken: []),
-  Screening(id: 's16', movieId: 'm8', hall: 'Зал 2', day: '09 окт', time: '19:15', price: 100, seatsTaken: ['A1', 'A2', 'A3']),
-  Screening(id: 's17', movieId: 'm8', hall: 'Зал 1', day: '10 окт', time: '21:00', price: 100, seatsTaken: []),
+const _russianMonths = [
+  'янв',
+  'фев',
+  'мар',
+  'апр',
+  'май',
+  'июн',
+  'июл',
+  'авг',
+  'сен',
+  'окт',
+  'ноя',
+  'дек',
+];
+
+final mockScreenings = <Screening>[
+  Screening(id: 's1', movieId: 'm1', hall: 'Зал 1', dateTime: DateTime(2026, 10, 8, 18), price: 95, seatsTaken: ['A1', 'A2', 'B5']),
+  Screening(id: 's2', movieId: 'm1', hall: 'Зал 1', dateTime: DateTime(2026, 10, 8, 21), price: 110, seatsTaken: ['C3']),
+  Screening(id: 's3', movieId: 'm1', hall: 'Зал 3', dateTime: DateTime(2026, 10, 9, 19, 30), price: 95, seatsTaken: []),
+  Screening(id: 's4', movieId: 'm2', hall: 'Зал 2', dateTime: DateTime(2026, 10, 8, 20, 15), price: 85, seatsTaken: ['D4', 'D5']),
+  Screening(id: 's5', movieId: 'm2', hall: 'Зал 2', dateTime: DateTime(2026, 10, 9, 22), price: 85, seatsTaken: []),
+  Screening(id: 's6', movieId: 'm3', hall: 'Зал 1', dateTime: DateTime(2026, 10, 8, 17, 30), price: 90, seatsTaken: ['A1']),
+  Screening(id: 's7', movieId: 'm3', hall: 'Зал 4', dateTime: DateTime(2026, 10, 10, 20), price: 90, seatsTaken: []),
+  Screening(id: 's8', movieId: 'm4', hall: 'Зал 3', dateTime: DateTime(2026, 10, 8, 16), price: 80, seatsTaken: []),
+  Screening(id: 's9', movieId: 'm4', hall: 'Зал 3', dateTime: DateTime(2026, 10, 9, 18, 30), price: 80, seatsTaken: ['B2', 'B3']),
+  Screening(id: 's10', movieId: 'm5', hall: 'Зал 2', dateTime: DateTime(2026, 10, 8, 19), price: 85, seatsTaken: []),
+  Screening(id: 's11', movieId: 'm5', hall: 'Зал 2', dateTime: DateTime(2026, 10, 10, 21, 30), price: 85, seatsTaken: ['A5']),
+  Screening(id: 's12', movieId: 'm6', hall: 'Зал 1', dateTime: DateTime(2026, 10, 9, 20, 45), price: 95, seatsTaken: []),
+  Screening(id: 's13', movieId: 'm6', hall: 'Зал 4', dateTime: DateTime(2026, 10, 10, 18), price: 95, seatsTaken: ['C1', 'C2']),
+  Screening(id: 's14', movieId: 'm7', hall: 'Зал 3', dateTime: DateTime(2026, 10, 8, 12), price: 75, seatsTaken: []),
+  Screening(id: 's15', movieId: 'm7', hall: 'Зал 3', dateTime: DateTime(2026, 10, 9, 14, 30), price: 75, seatsTaken: []),
+  Screening(id: 's16', movieId: 'm8', hall: 'Зал 2', dateTime: DateTime(2026, 10, 9, 19, 15), price: 100, seatsTaken: ['A1', 'A2', 'A3']),
+  Screening(id: 's17', movieId: 'm8', hall: 'Зал 1', dateTime: DateTime(2026, 10, 10, 21), price: 100, seatsTaken: []),
+  Screening(id: 's18', movieId: 'm1', hall: 'Зал 2', dateTime: DateTime(2026, 10, 8, 10, 30), price: 85, seatsTaken: []),
+  Screening(id: 's19', movieId: 'm1', hall: 'Зал 4', dateTime: DateTime(2026, 10, 8, 13, 30), price: 90, seatsTaken: []),
+  Screening(id: 's20', movieId: 'm1', hall: 'Зал 3', dateTime: DateTime(2026, 10, 8, 15, 30), price: 95, seatsTaken: []),
+  Screening(id: 's21', movieId: 'm1', hall: 'Зал 2', dateTime: DateTime(2026, 10, 8, 23, 15), price: 100, seatsTaken: []),
 ];
 
 class Reservation {
   final String id;
-  final String movieTitle;
-  final String day;
-  final String time;
-  final String hall;
+  final String screeningId;
+  final String userId;
   final List<String> seats;
   final double totalPrice;
   final String status;
 
   const Reservation({
     required this.id,
-    required this.movieTitle,
-    required this.day,
-    required this.time,
-    required this.hall,
+    required this.screeningId,
+    required this.userId,
     required this.seats,
     required this.totalPrice,
     required this.status,
@@ -219,10 +238,10 @@ class Reservation {
 }
 
 const mockReservations = [
-  Reservation(id: 'r1', movieTitle: 'Интерстеллар', day: '08 окт', time: '18:00', hall: 'Зал 1', seats: ['E4', 'E5'], totalPrice: 190, status: 'Подтверждено'),
-  Reservation(id: 'r2', movieTitle: 'Начало', day: '08 окт', time: '20:15', hall: 'Зал 2', seats: ['D1'], totalPrice: 85, status: 'Ожидает оплаты'),
-  Reservation(id: 'r3', movieTitle: 'Побег из Шоушенка', day: '09 окт', time: '19:15', hall: 'Зал 2', seats: ['B3', 'B4'], totalPrice: 200, status: 'Подтверждено'),
-  Reservation(id: 'r4', movieTitle: 'Паразиты', day: '09 окт', time: '20:45', hall: 'Зал 1', seats: ['A6'], totalPrice: 95, status: 'Отменено'),
-  Reservation(id: 'r5', movieTitle: 'Тёмный рыцарь', day: '10 окт', time: '20:00', hall: 'Зал 4', seats: ['C2', 'C3', 'C4'], totalPrice: 270, status: 'Подтверждено'),
-  Reservation(id: 'r6', movieTitle: 'Король Лев', day: '08 окт', time: '12:00', hall: 'Зал 3', seats: ['F1', 'F2'], totalPrice: 150, status: 'Подтверждено'),
+  Reservation(id: 'r1', screeningId: 's1', userId: 'u1', seats: ['E4', 'E5'], totalPrice: 190, status: 'Подтверждено'),
+  Reservation(id: 'r2', screeningId: 's4', userId: 'u1', seats: ['D1'], totalPrice: 85, status: 'Ожидает оплаты'),
+  Reservation(id: 'r3', screeningId: 's16', userId: 'u1', seats: ['B3', 'B4'], totalPrice: 200, status: 'Подтверждено'),
+  Reservation(id: 'r4', screeningId: 's12', userId: 'u1', seats: ['A6'], totalPrice: 95, status: 'Отменено'),
+  Reservation(id: 'r5', screeningId: 's7', userId: 'u1', seats: ['C2', 'C3', 'C4'], totalPrice: 270, status: 'Подтверждено'),
+  Reservation(id: 'r6', screeningId: 's14', userId: 'u1', seats: ['F1', 'F2'], totalPrice: 150, status: 'Подтверждено'),
 ];
