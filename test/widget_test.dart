@@ -139,14 +139,20 @@ void main() {
     await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
     await tester.pumpAndSettle();
     expect(find.text('Вход / регистрация'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
 
     appRouter.go('/movies');
     await tester.pumpAndSettle();
-    expect(find.text('Афиша'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Афиша')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     appRouter.go('/movies/m1');
     await tester.pumpAndSettle();
     expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     appRouter.go('/movies/m1/screenings');
     await tester.pumpAndSettle();
@@ -166,11 +172,22 @@ void main() {
 
     appRouter.go('/tickets');
     await tester.pumpAndSettle();
-    expect(find.text('Мои билеты'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Мои билеты'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     appRouter.go('/profile');
     await tester.pumpAndSettle();
-    expect(find.text('Профиль'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Профиль')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 
   testWidgets('movie cards open details by ID and back returns to the list', (
@@ -189,7 +206,11 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
-    expect(find.text('Афиша'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Афиша')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.ensureVisible(find.text('Начало').first);
     await tester.pumpAndSettle();
