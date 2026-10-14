@@ -49,7 +49,7 @@ class DemoHomeScreen extends StatelessWidget {
           _DemoDestination(
             title: 'Карточка фильма',
             icon: Icons.movie_outlined,
-            onTap: () => _open(context, MovieDetailScreen(movie: movie)),
+            onTap: () => _open(context, MovieDetailScreen(id: movie.id)),
           ),
           _DemoDestination(
             title: 'Выбор сеанса',

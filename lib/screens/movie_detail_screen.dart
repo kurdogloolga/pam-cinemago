@@ -4,12 +4,20 @@ import '../data/mock_data.dart';
 import '../widgets/movie_poster.dart';
 
 class MovieDetailScreen extends StatelessWidget {
-  final Movie movie;
+  final String id;
 
-  const MovieDetailScreen({super.key, required this.movie});
+  const MovieDetailScreen({super.key, required this.id});
 
   @override
   Widget build(BuildContext context) {
+    final movie = mockMovies.where((item) => item.id == id).firstOrNull;
+    if (movie == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Фильм не найден')),
+        body: Center(child: Text('Фильм не найден')),
+      );
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenings =
