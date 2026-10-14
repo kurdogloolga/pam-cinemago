@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/demo_home_screen.dart';
+
+import 'router.dart';
 
 void main() => runApp(const MyApp());
 
@@ -8,7 +9,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'CinemaGo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
           titleLarge: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      home: const DemoHomeScreen(),
+      routerConfig: appRouter,
     );
   }
 }
