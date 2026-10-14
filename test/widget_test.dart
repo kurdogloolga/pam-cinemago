@@ -219,4 +219,34 @@ void main() {
     expect(find.text('Начало'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
   });
+
+  testWidgets('navigation branches preserve their route stacks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    appRouter.go('/movies');
+    await tester.pumpAndSettle();
+
+    final movieTitle = find.text('Интерстеллар').first;
+    await tester.ensureVisible(movieTitle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(movieTitle);
+    await tester.pumpAndSettle();
+    expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await tester.tap(find.text('Мои билеты').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Ваши бронирования'), findsOneWidget);
+
+    await tester.tap(find.text('Профиль').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Анастасия Иванова'), findsOneWidget);
+
+    await tester.tap(find.text('Афиша').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
 }
