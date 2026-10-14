@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'data/mock_data.dart';
 import 'screens/login_screen.dart';
+import 'screens/booking_confirmation_screen.dart';
 import 'screens/movie_detail_screen.dart';
 import 'screens/movies_screen.dart';
 import 'screens/my_tickets_screen.dart';
@@ -13,10 +14,7 @@ import 'screens/seat_selection_screen.dart';
 final appRouter = GoRouter(
   initialLocation: '/login',
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/movies',
       builder: (context, state) => const MoviesScreen(),
@@ -61,6 +59,34 @@ final appRouter = GoRouter(
                       screening: screening,
                     );
                   },
+                  routes: [
+                    GoRoute(
+                      path: 'confirmation',
+                      builder: (context, state) {
+                        final movie = mockMovies
+                            .where(
+                              (movie) => movie.id == state.pathParameters['id'],
+                            )
+                            .firstOrNull;
+                        final screening = mockScreenings
+                            .where(
+                              (screening) =>
+                                  screening.id ==
+                                  state.pathParameters['screeningId'],
+                            )
+                            .firstOrNull;
+                        if (movie == null || screening == null) {
+                          return _notFoundScreen('Бронирование не найдено');
+                        }
+                        return BookingConfirmationScreen(
+                          movie: movie,
+                          screening: screening,
+                          seats:
+                              state.uri.queryParametersAll['seats'] ?? const [],
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

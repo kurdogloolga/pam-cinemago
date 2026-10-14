@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/mock_data.dart';
 import '../widgets/movie_poster.dart';
-import 'seat_selection_screen.dart';
 
 class ScreeningSelectionScreen extends StatelessWidget {
   final Movie movie;
@@ -109,16 +109,10 @@ class ScreeningSelectionScreen extends StatelessWidget {
                 child: FilledButton(
                   onPressed: selectedScreening == null
                       ? null
-                      : () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (context) => SeatSelectionScreen(
-                                movie: movie,
-                                screening: selectedScreening,
-                              ),
-                            ),
-                          );
-                        },
+                      : () => context.push(
+                          '/movies/${movie.id}/screenings/'
+                          '${selectedScreening.id}/seats',
+                        ),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(54),
                     shape: RoundedRectangleBorder(

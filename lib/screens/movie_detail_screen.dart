@@ -1,5 +1,7 @@
 // screens/movie_detail_screen.dart — карточка фильма: постер, описание, длительность, рейтинг, сеансы
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../data/mock_data.dart';
 import '../widgets/movie_poster.dart';
 
@@ -29,7 +31,7 @@ class MovieDetailScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton.icon(
-            onPressed: () {},
+            onPressed: () => context.push('/movies/${movie.id}/screenings'),
             icon: const Icon(Icons.confirmation_number_outlined),
             label: const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),

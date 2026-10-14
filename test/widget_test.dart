@@ -1,4 +1,5 @@
 import 'package:cinemago/data/mock_data.dart';
+import 'package:cinemago/router.dart';
 import 'package:cinemago/screens/booking_confirmation_screen.dart';
 import 'package:cinemago/screens/login_screen.dart';
 import 'package:cinemago/screens/my_tickets_screen.dart';
@@ -130,5 +131,45 @@ void main() {
       tester.widget<TextField>(find.byType(TextField).at(1)).obscureText,
       isTrue,
     );
+  });
+
+  testWidgets('router opens all required CinemaGo screens by their paths', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpAndSettle();
+    expect(find.text('Вход / регистрация'), findsOneWidget);
+
+    appRouter.go('/movies');
+    await tester.pumpAndSettle();
+    expect(find.text('Афиша'), findsOneWidget);
+
+    appRouter.go('/movies/m1');
+    await tester.pumpAndSettle();
+    expect(find.text('Интерстеллар'), findsOneWidget);
+
+    appRouter.go('/movies/m1/screenings');
+    await tester.pumpAndSettle();
+    expect(find.text('Выбор сеанса'), findsOneWidget);
+
+    appRouter.go('/movies/m1/screenings/s1/seats');
+    await tester.pumpAndSettle();
+    expect(find.text('Выбор мест'), findsOneWidget);
+
+    appRouter.go(
+      '/movies/m1/screenings/s1/seats/confirmation?seats=C4&seats=C5',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Подтверждение брони'), findsOneWidget);
+    expect(find.text('C4'), findsOneWidget);
+    expect(find.text('C5'), findsOneWidget);
+
+    appRouter.go('/tickets');
+    await tester.pumpAndSettle();
+    expect(find.text('Мои билеты'), findsOneWidget);
+
+    appRouter.go('/profile');
+    await tester.pumpAndSettle();
+    expect(find.text('Профиль'), findsOneWidget);
   });
 }

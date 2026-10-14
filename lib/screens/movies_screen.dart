@@ -1,5 +1,7 @@
 // screens/movies_screen.dart — Афиша: поиск + фильтр по жанру (визуально), сетка фильмов
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../data/mock_data.dart';
 import '../widgets/movie_card.dart';
 
@@ -42,7 +44,7 @@ class MoviesScreen extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: genres.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) => ChoiceChip(
                 label: Text(genres[index]),
                 selected: index == 0,
@@ -61,8 +63,13 @@ class MoviesScreen extends StatelessWidget {
                 childAspectRatio: 0.62,
               ),
               itemCount: mockMovies.length,
-              itemBuilder: (context, index) =>
-                  MovieCard(movie: mockMovies[index]),
+              itemBuilder: (context, index) {
+                final movie = mockMovies[index];
+                return MovieCard(
+                  movie: movie,
+                  onTap: () => context.push('/movies/${movie.id}'),
+                );
+              },
             ),
           ),
         ],

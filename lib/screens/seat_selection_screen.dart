@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/mock_data.dart';
-import 'booking_confirmation_screen.dart';
 
 class SeatSelectionScreen extends StatelessWidget {
   final Movie movie;
@@ -102,14 +102,14 @@ class SeatSelectionScreen extends StatelessWidget {
             onPressed: selectedSeats.isEmpty
                 ? null
                 : () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (context) => BookingConfirmationScreen(
-                          movie: movie,
-                          screening: screening,
-                          seats: selectedSeats.toList(),
-                        ),
-                      ),
+                    final query = selectedSeats
+                        .map(
+                          (seat) => 'seats=${Uri.encodeQueryComponent(seat)}',
+                        )
+                        .join('&');
+                    context.push(
+                      '/movies/${movie.id}/screenings/${screening.id}/'
+                      'seats/confirmation?$query',
                     );
                   },
             style: FilledButton.styleFrom(
@@ -238,10 +238,7 @@ class _SeatGrid extends StatelessWidget {
   final Set<String> takenSeats;
   final Set<String> selectedSeats;
 
-  const _SeatGrid({
-    required this.takenSeats,
-    required this.selectedSeats,
-  });
+  const _SeatGrid({required this.takenSeats, required this.selectedSeats});
 
   @override
   Widget build(BuildContext context) {
@@ -287,10 +284,13 @@ class _SeatGrid extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: _Seat(
-                        id: '${rowLabels[row]}${seat + 1}',
-                        taken: takenSeats.contains('${rowLabels[row]}${seat + 1}'),
-                        selected:
-                            selectedSeats.contains('${rowLabels[row]}${seat + 1}'),
+                      id: '${rowLabels[row]}${seat + 1}',
+                      taken: takenSeats.contains(
+                        '${rowLabels[row]}${seat + 1}',
+                      ),
+                      selected: selectedSeats.contains(
+                        '${rowLabels[row]}${seat + 1}',
+                      ),
                     ),
                   ),
                 ),
@@ -309,11 +309,7 @@ class _Seat extends StatelessWidget {
   final bool taken;
   final bool selected;
 
-  const _Seat({
-    required this.id,
-    required this.taken,
-    required this.selected,
-  });
+  const _Seat({required this.id, required this.taken, required this.selected});
 
   @override
   Widget build(BuildContext context) {
