@@ -172,4 +172,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Профиль'), findsOneWidget);
   });
+
+  testWidgets('movie cards open details by ID and back returns to the list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    appRouter.go('/movies');
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Интерстеллар').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Интерстеллар').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('Афиша'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Начало').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Начало').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Начало'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
 }
