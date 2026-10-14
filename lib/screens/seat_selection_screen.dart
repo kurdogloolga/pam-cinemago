@@ -3,11 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../data/mock_data.dart';
 
-class SeatSelectionScreen extends StatelessWidget {
+class SeatSelectionScreen extends StatefulWidget {
   final Movie movie;
   final Screening screening;
-
-  static const _previewSelectedSeats = {'C4', 'C5'};
 
   const SeatSelectionScreen({
     super.key,
@@ -16,115 +14,191 @@ class SeatSelectionScreen extends StatelessWidget {
   });
 
   @override
+  State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
+}
+
+class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _selectionErrorKey = GlobalKey();
+  Set<String> _selectedSeats = {};
+  String? _selectionError;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final selectedSeats = _previewSelectedSeats
-        .where((seat) => !screening.seatsTaken.contains(seat))
-        .toSet();
-    final total = screening.price * selectedSeats.length;
+    return Form(
+      key: _formKey,
+      child: FormField<Set<String>>(
+        initialValue: _selectedSeats,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        validator: (seats) => seats == null || seats.isEmpty
+            ? 'Выберите минимум одно место'
+            : null,
+        builder: (field) {
+          final total = widget.screening.price * _selectedSeats.length;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Выбор мест'), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        children: [
-          _ScreeningSummary(movie: movie, screening: screening),
-          const SizedBox(height: 28),
-          Text(
-            'Выберите места',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Схема показывает свободные, занятые и выбранные места',
-            style: textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 26),
-          _CinemaScreen(),
-          const SizedBox(height: 8),
-          Text(
-            'ЭКРАН',
-            textAlign: TextAlign.center,
-            style: textTheme.labelSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              letterSpacing: 3,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 28),
-          _SeatGrid(
-            takenSeats: screening.seatsTaken.toSet(),
-            selectedSeats: selectedSeats,
-          ),
-          const SizedBox(height: 28),
-          const _SeatLegend(),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
+          return Scaffold(
+            appBar: AppBar(title: const Text('Выбор мест'), centerTitle: true),
+            body: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
               children: [
-                Icon(Icons.event_seat_outlined, color: scheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    selectedSeats.isEmpty
-                        ? 'Места не выбраны'
-                        : 'Выбрано мест: ${selectedSeats.length}',
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                _ScreeningSummary(
+                  movie: widget.movie,
+                  screening: widget.screening,
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  'Выберите места',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 6),
                 Text(
-                  '${total.toStringAsFixed(0)} MDL',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
+                  'Схема показывает свободные, занятые и выбранные места',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 26),
+                _CinemaScreen(),
+                const SizedBox(height: 8),
+                Text(
+                  'ЭКРАН',
+                  textAlign: TextAlign.center,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    letterSpacing: 3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SeatGrid(
+                      takenSeats: widget.screening.seatsTaken.toSet(),
+                      selectedSeats: _selectedSeats,
+                      onSeatTap: (seat) {
+                        final updatedSeats = Set<String>.of(_selectedSeats);
+                        if (!updatedSeats.add(seat)) {
+                          updatedSeats.remove(seat);
+                        }
+                        setState(() {
+                          _selectedSeats = updatedSeats;
+                          _selectionError = null;
+                        });
+                        field.didChange(updatedSeats);
+                      },
+                    ),
+                    if (_selectionError != null || field.errorText != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        key: _selectionErrorKey,
+                        _selectionError ?? field.errorText!,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 28),
+                const _SeatLegend(),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.event_seat_outlined, color: scheme.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _selectedSeats.isEmpty
+                              ? 'Места не выбраны'
+                              : 'Выбрано мест: ${_selectedSeats.length}',
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${total.toStringAsFixed(0)} MDL',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          child: FilledButton(
-            onPressed: selectedSeats.isEmpty
-                ? null
-                : () {
-                    final query = selectedSeats
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: FilledButton(
+                  onPressed: () {
+                    final valid = _formKey.currentState!.validate();
+                    setState(() {
+                      _selectionError = valid
+                          ? null
+                          : 'Выберите минимум одно место';
+                    });
+                    if (!valid) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        final errorContext = _selectionErrorKey.currentContext;
+                        if (errorContext != null) {
+                          Scrollable.ensureVisible(
+                            errorContext,
+                            alignment: 0.8,
+                            duration: const Duration(milliseconds: 250),
+                          );
+                        }
+                      });
+                      return;
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Места выбраны: ${_selectedSeats.join(', ')}',
+                        ),
+                      ),
+                    );
+                    final query = _selectedSeats
                         .map(
                           (seat) => 'seats=${Uri.encodeQueryComponent(seat)}',
                         )
                         .join('&');
                     context.push(
-                      '/movies/${movie.id}/screenings/${screening.id}/'
-                      'seats/confirmation?$query',
+                      '/movies/${widget.movie.id}/screenings/'
+                      '${widget.screening.id}/seats/confirmation?$query',
                     );
                   },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    _selectedSeats.isEmpty
+                        ? 'Выберите места'
+                        : 'Продолжить · ${total.toStringAsFixed(0)} MDL',
+                  ),
+                ),
               ),
             ),
-            child: Text(
-              selectedSeats.isEmpty
-                  ? 'Выберите места'
-                  : 'Продолжить · ${total.toStringAsFixed(0)} MDL',
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -237,8 +311,13 @@ class _CinemaScreen extends StatelessWidget {
 class _SeatGrid extends StatelessWidget {
   final Set<String> takenSeats;
   final Set<String> selectedSeats;
+  final ValueChanged<String> onSeatTap;
 
-  const _SeatGrid({required this.takenSeats, required this.selectedSeats});
+  const _SeatGrid({
+    required this.takenSeats,
+    required this.selectedSeats,
+    required this.onSeatTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +370,7 @@ class _SeatGrid extends StatelessWidget {
                       selected: selectedSeats.contains(
                         '${rowLabels[row]}${seat + 1}',
                       ),
+                      onTap: () => onSeatTap('${rowLabels[row]}${seat + 1}'),
                     ),
                   ),
                 ),
@@ -308,8 +388,14 @@ class _Seat extends StatelessWidget {
   final String id;
   final bool taken;
   final bool selected;
+  final VoidCallback onTap;
 
-  const _Seat({required this.id, required this.taken, required this.selected});
+  const _Seat({
+    required this.id,
+    required this.taken,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -335,20 +421,24 @@ class _Seat extends StatelessWidget {
         child: Material(
           color: background,
           borderRadius: BorderRadius.circular(7),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(
-                color: taken
-                    ? Colors.transparent
-                    : selected
-                    ? scheme.primary
-                    : scheme.outlineVariant,
+          child: InkWell(
+            onTap: taken ? null : onTap,
+            borderRadius: BorderRadius.circular(7),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: taken
+                      ? Colors.transparent
+                      : selected
+                      ? scheme.primary
+                      : scheme.outlineVariant,
+                ),
               ),
+              child: selected
+                  ? Icon(Icons.check, size: 15, color: foreground)
+                  : null,
             ),
-            child: selected
-                ? Icon(Icons.check, size: 15, color: foreground)
-                : null,
           ),
         ),
       ),

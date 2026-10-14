@@ -21,6 +21,12 @@ void main() {
       ),
     );
 
+    await tester.drag(find.byType(ListView), const Offset(0, -350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seat-C4')));
+    await tester.tap(find.byKey(const ValueKey('seat-C5')));
+    await tester.pumpAndSettle();
+
     expect(
       find.byWidgetPredicate(
         (widget) => widget is Semantics && widget.key is ValueKey<String>,
@@ -248,5 +254,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Интерстеллар'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
+
+  testWidgets('seat selection validates and passes selected seats', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    appRouter.go('/movies/m1/screenings/s1/seats');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Выберите места'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .state<FormFieldState<Set<String>>>(
+            find.byType(FormField<Set<String>>),
+          )
+          .errorText,
+      'Выберите минимум одно место',
+    );
+    expect(find.text('Выберите минимум одно место'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('seat-A1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seat-A1')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Места не выбраны'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Места не выбраны'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('seat-C4')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seat-C4')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Выбрано мест: 1'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Выбрано мест: 1'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Выбрано мест: 1'), findsOneWidget);
+    expect(find.text('Выберите минимум одно место'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Продолжить · 95 MDL'));
+    await tester.pumpAndSettle();
+    expect(find.text('Подтверждение брони'), findsOneWidget);
+    expect(find.text('C4'), findsOneWidget);
+    expect(find.text('Места выбраны: C4'), findsOneWidget);
   });
 }
