@@ -107,7 +107,10 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
 
-    expect(find.text('Профиль'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Профиль')),
+      findsOneWidget,
+    );
     expect(find.text('Анастасия Иванова'), findsOneWidget);
     expect(find.text('anastasia.ivanova@example.com'), findsOneWidget);
     expect(find.text('+373 69 123 456'), findsOneWidget);
@@ -120,6 +123,55 @@ void main() {
     );
     expect(find.text('Помощь и поддержка'), findsOneWidget);
     expect(find.text('Выйти из аккаунта'), findsOneWidget);
+  });
+
+  testWidgets('profile logout can be cancelled without leaving profile', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    appRouter.go('/profile');
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Выйти из аккаунта'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Выйти из аккаунта'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Выйти из аккаунта?'), findsOneWidget);
+    await tester.tap(find.text('Остаться'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Профиль')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Выйти из аккаунта?'), findsNothing);
+  });
+
+  testWidgets('profile logout confirmation returns to login without back', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    appRouter.go('/profile');
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Выйти из аккаунта'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Выйти из аккаунта'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Да, выйти'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Вход / регистрация'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(appRouter.canPop(), isFalse);
   });
 
   testWidgets('login screen has email and obscured password form fields', (
