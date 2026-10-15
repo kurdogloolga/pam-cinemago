@@ -122,7 +122,7 @@ void main() {
     expect(find.text('Выйти из аккаунта'), findsOneWidget);
   });
 
-  testWidgets('login screen has static email and obscured password fields', (
+  testWidgets('login screen has email and obscured password form fields', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
@@ -132,16 +132,56 @@ void main() {
     expect(find.text('Пароль'), findsOneWidget);
     expect(find.text('Войти'), findsOneWidget);
     expect(find.text('Зарегистрируйтесь'), findsOneWidget);
-    expect(find.byType(TextField), findsNWidgets(2));
+    expect(find.byType(Form), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
     expect(
-      tester.widget<TextField>(find.byType(TextField).at(1)).obscureText,
+      tester.widget<EditableText>(find.byType(EditableText).at(1)).obscureText,
       isTrue,
     );
+  });
+
+  testWidgets('login validates credentials and replaces login with movies', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
+    await tester.pumpAndSettle();
+    expect(find.text('Введите электронную почту'), findsOneWidget);
+    expect(
+      find.text('Пароль должен содержать минимум 6 символов'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'not-an-email');
+    await tester.enterText(find.byType(TextFormField).at(1), '123');
+    await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
+    await tester.pumpAndSettle();
+    expect(find.text('Введите корректную электронную почту'), findsOneWidget);
+    expect(
+      find.text('Пароль должен содержать минимум 6 символов'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'viewer@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
+    await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Афиша'), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Вход / регистрация'), findsNothing);
+    expect(appRouter.canPop(), isFalse);
   });
 
   testWidgets('router opens all required CinemaGo screens by their paths', (
     tester,
   ) async {
+    appRouter.go('/login');
     await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
     await tester.pumpAndSettle();
     expect(find.text('Вход / регистрация'), findsOneWidget);
