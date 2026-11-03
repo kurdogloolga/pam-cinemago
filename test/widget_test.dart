@@ -1,4 +1,5 @@
 import 'package:cinemago/data/mock_data.dart';
+import 'package:cinemago/models/seat_selection_model.dart';
 import 'package:cinemago/router.dart';
 import 'package:cinemago/screens/booking_confirmation_screen.dart';
 import 'package:cinemago/screens/login_screen.dart';
@@ -7,16 +8,20 @@ import 'package:cinemago/screens/profile_screen.dart';
 import 'package:cinemago/screens/seat_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   testWidgets('seat map shows 8 rows, 10 seats and all seat states', (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SeatSelectionScreen(
-          movie: mockMovies.first,
-          screening: mockScreenings.first,
+      ChangeNotifierProvider(
+        create: (_) => SeatSelectionModel(),
+        child: MaterialApp(
+          home: SeatSelectionScreen(
+            movie: mockMovies.first,
+            screening: mockScreenings.first,
+          ),
         ),
       ),
     );
@@ -128,7 +133,7 @@ void main() {
   testWidgets('profile logout can be cancelled without leaving profile', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     appRouter.go('/profile');
     await tester.pumpAndSettle();
 
@@ -155,7 +160,7 @@ void main() {
   testWidgets('profile logout confirmation returns to login without back', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     appRouter.go('/profile');
     await tester.pumpAndSettle();
 
@@ -195,7 +200,7 @@ void main() {
   testWidgets('login validates credentials and replaces login with movies', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
@@ -234,7 +239,7 @@ void main() {
     tester,
   ) async {
     appRouter.go('/login');
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     await tester.pumpAndSettle();
     expect(find.text('Вход / регистрация'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
@@ -291,7 +296,7 @@ void main() {
   testWidgets('movie cards open details by ID and back returns to the list', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     appRouter.go('/movies');
     await tester.pumpAndSettle();
 
@@ -321,7 +326,7 @@ void main() {
   testWidgets('navigation branches preserve their route stacks', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     appRouter.go('/movies');
     await tester.pumpAndSettle();
 
@@ -351,7 +356,7 @@ void main() {
   testWidgets('seat selection validates and passes selected seats', (
     tester,
   ) async {
-    await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await tester.pumpWidget(_routerApp());
     appRouter.go('/movies/m1/screenings/s1/seats');
     await tester.pumpAndSettle();
 
@@ -401,4 +406,38 @@ void main() {
     expect(find.text('C4'), findsOneWidget);
     expect(find.text('Места выбраны: C4'), findsOneWidget);
   });
+
+  testWidgets('seat selection persists when switching navigation branches', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_routerApp());
+    appRouter.go('/movies/m1/screenings/s1/seats');
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('seat-H10')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seat-H10')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Профиль').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Афиша').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<Semantics>(find.byKey(const ValueKey('seat-H10')))
+          .properties
+          .label,
+      'Ряд H, место 10, выбрано',
+    );
+    expect(find.text('Выбрано мест: 1'), findsOneWidget);
+  });
+}
+
+Widget _routerApp() {
+  return ChangeNotifierProvider(
+    create: (_) => SeatSelectionModel(),
+    child: MaterialApp.router(routerConfig: appRouter),
+  );
 }

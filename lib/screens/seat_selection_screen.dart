@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../data/mock_data.dart';
+import '../models/seat_selection_model.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final Movie movie;
@@ -20,23 +22,29 @@ class SeatSelectionScreen extends StatefulWidget {
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _selectionErrorKey = GlobalKey();
-  Set<String> _selectedSeats = {};
   String? _selectionError;
 
   @override
   Widget build(BuildContext context) {
+    final selectionModel = context.watch<SeatSelectionModel>();
+    final selectedSeats = selectionModel
+        .selectedSeatsFor(widget.screening.id)
+        .toSet();
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Form(
       key: _formKey,
       child: FormField<Set<String>>(
-        initialValue: _selectedSeats,
+        initialValue: selectedSeats,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         validator: (seats) => seats == null || seats.isEmpty
             ? 'Выберите минимум одно место'
             : null,
         builder: (field) {
-          final total = widget.screening.price * _selectedSeats.length;
+          final selectedSeats = selectionModel
+              .selectedSeatsFor(widget.screening.id)
+              .toSet();
+          final total = widget.screening.price * selectedSeats.length;
 
           return Scaffold(
             appBar: AppBar(title: const Text('Выбор мест'), centerTitle: true),
@@ -79,14 +87,17 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   children: [
                     _SeatGrid(
                       takenSeats: widget.screening.seatsTaken.toSet(),
-                      selectedSeats: _selectedSeats,
+                      selectedSeats: selectedSeats,
                       onSeatTap: (seat) {
-                        final updatedSeats = Set<String>.of(_selectedSeats);
-                        if (!updatedSeats.add(seat)) {
-                          updatedSeats.remove(seat);
-                        }
+                        context.read<SeatSelectionModel>().toggleSeat(
+                          widget.screening.id,
+                          seat,
+                        );
+                        final updatedSeats = context
+                            .read<SeatSelectionModel>()
+                            .selectedSeatsFor(widget.screening.id)
+                            .toSet();
                         setState(() {
-                          _selectedSeats = updatedSeats;
                           _selectionError = null;
                         });
                         field.didChange(updatedSeats);
@@ -119,9 +130,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          _selectedSeats.isEmpty
+                          selectedSeats.isEmpty
                               ? 'Места не выбраны'
-                              : 'Выбрано мест: ${_selectedSeats.length}',
+                              : 'Выбрано мест: ${selectedSeats.length}',
                           style: textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -166,18 +177,21 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       return;
                     }
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Места выбраны: ${_selectedSeats.join(', ')}',
-                        ),
-                      ),
-                    );
-                    final query = _selectedSeats
+                    final selectedSeats = context
+                        .read<SeatSelectionModel>()
+                        .selectedSeatsFor(widget.screening.id);
+                    final query = selectedSeats
                         .map(
                           (seat) => 'seats=${Uri.encodeQueryComponent(seat)}',
                         )
                         .join('&');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Места выбраны: ${selectedSeats.join(', ')}',
+                        ),
+                      ),
+                    );
                     context.push(
                       '/movies/${widget.movie.id}/screenings/'
                       '${widget.screening.id}/seats/confirmation?$query',
@@ -190,7 +204,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     ),
                   ),
                   child: Text(
-                    _selectedSeats.isEmpty
+                    selectedSeats.isEmpty
                         ? 'Выберите места'
                         : 'Продолжить · ${total.toStringAsFixed(0)} MDL',
                   ),
