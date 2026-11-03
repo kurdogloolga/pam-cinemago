@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'data/cinema_repository.dart';
+import 'data/mock_cinema_repository.dart';
+import 'models/cinema_model.dart';
 import 'models/seat_selection_model.dart';
 import 'router.dart';
 
@@ -11,8 +14,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SeatSelectionModel(),
+    return MultiProvider(
+      providers: [
+        Provider<CinemaRepository>(create: (_) => MockCinemaRepository()),
+        ChangeNotifierProvider(
+          create: (context) => CinemaModel(context.read<CinemaRepository>()),
+        ),
+        ChangeNotifierProvider(create: (_) => SeatSelectionModel()),
+      ],
       child: MaterialApp.router(
         title: 'CinemaGo',
         theme: ThemeData(
