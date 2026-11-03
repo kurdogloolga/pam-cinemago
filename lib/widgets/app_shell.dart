@@ -11,9 +11,6 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeReservations = context
-        .watch<CinemaModel>()
-        .activeReservationCount;
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
@@ -26,17 +23,23 @@ class AppShell extends StatelessWidget {
             label: 'Афиша',
           ),
           NavigationDestination(
-            icon: Badge(
-              key: ValueKey('tickets-badge'),
-              label: Text('$activeReservations'),
-              isLabelVisible: activeReservations > 0,
-              child: Icon(Icons.confirmation_number_outlined),
+            icon: Consumer<CinemaModel>(
+              builder: (context, model, child) => Badge(
+                key: const ValueKey('tickets-badge'),
+                label: Text('${model.activeReservationCount}'),
+                isLabelVisible: model.activeReservationCount > 0,
+                child: child!,
+              ),
+              child: const Icon(Icons.confirmation_number_outlined),
             ),
-            selectedIcon: Badge(
-              key: const ValueKey('tickets-selected-badge'),
-              label: Text('$activeReservations'),
-              isLabelVisible: activeReservations > 0,
-              child: Icon(Icons.confirmation_number),
+            selectedIcon: Consumer<CinemaModel>(
+              builder: (context, model, child) => Badge(
+                key: const ValueKey('tickets-selected-badge'),
+                label: Text('${model.activeReservationCount}'),
+                isLabelVisible: model.activeReservationCount > 0,
+                child: child!,
+              ),
+              child: const Icon(Icons.confirmation_number),
             ),
             label: 'Мои билеты',
           ),
