@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+import '../data/mock_cinema_repository.dart';
+import '../models/cinema_model.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _simulateNetworkError = false;
 
   Future<void> _logout(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -109,6 +120,25 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Язык приложения',
                 subtitle: 'Русский',
                 trailing: Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _ProfileSection(
+            title: 'Для демонстрации',
+            children: [
+              SwitchListTile(
+                title: const Text('Симулировать сбой сети'),
+                value: _simulateNetworkError,
+                onChanged: (value) {
+                  setState(() {
+                    _simulateNetworkError = value;
+                  });
+                  context.read<MockCinemaRepository>().simulateError = value;
+                  if (value) {
+                    context.read<CinemaModel>().loadMovies();
+                  }
+                },
               ),
             ],
           ),

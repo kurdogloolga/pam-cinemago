@@ -16,7 +16,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<CinemaRepository>(create: (_) => MockCinemaRepository()),
+        Provider<MockCinemaRepository>(create: (_) => MockCinemaRepository()),
+        Provider<CinemaRepository>(
+          create: (context) => context.read<MockCinemaRepository>(),
+        ),
         ChangeNotifierProvider(
           create: (context) => CinemaModel(context.read<CinemaRepository>())
             ..loadMovies()
