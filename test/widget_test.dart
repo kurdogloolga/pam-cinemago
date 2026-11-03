@@ -134,6 +134,11 @@ void main() {
 
     expect(appRouter.routeInformationProvider.value.uri.path, '/tickets');
     expect(find.text('Бронирование подтверждено'), findsOneWidget);
+    final badgeAfterBooking = tester.widget<Badge>(
+      find.byKey(const ValueKey('tickets-selected-badge')),
+    );
+    expect(badgeAfterBooking.isLabelVisible, isTrue);
+    expect((badgeAfterBooking.label as Text).data, '6');
     await tester.scrollUntilVisible(
       find.text('Места C4, C5'),
       250,
@@ -203,6 +208,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
 
+    final badgeAfterCancellation = tester.widget<Badge>(
+      find.byKey(const ValueKey('tickets-selected-badge')),
+    );
+    expect(badgeAfterCancellation.isLabelVisible, isTrue);
+    expect((badgeAfterCancellation.label as Text).data, '4');
     final reservationCard = find.byKey(const ValueKey('reservation-r1'));
     expect(
       find.descendant(of: reservationCard, matching: find.text('Отменено')),

@@ -21,6 +21,7 @@ class CinemaModel extends ChangeNotifier {
   bool _isMoviesLoading = false;
   bool _isReservationsLoading = false;
   bool _isReservationSaving = false;
+  bool _hasLoadedReservations = false;
 
   String? _moviesError;
   String? _reservationsError;
@@ -30,6 +31,10 @@ class CinemaModel extends ChangeNotifier {
   List<Screening> get screenings =>
       screeningsForMovie(_activeScreeningsMovieId ?? '');
   List<Reservation> get reservations => List.unmodifiable(_reservations);
+  int get activeReservationCount => _reservations
+      .where((reservation) => reservation.status != 'Отменено')
+      .length;
+  bool get hasLoadedReservations => _hasLoadedReservations;
   Movie? movieById(String id) =>
       _movies.where((movie) => movie.id == id).firstOrNull;
 
@@ -127,6 +132,7 @@ class CinemaModel extends ChangeNotifier {
     switch (result) {
       case Ok<List<Reservation>>(value: final reservations):
         _reservations = List.unmodifiable(reservations);
+        _hasLoadedReservations = true;
       case Err<List<Reservation>>(msg: final message):
         _reservationsError = message;
     }

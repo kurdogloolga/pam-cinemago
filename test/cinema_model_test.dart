@@ -51,6 +51,7 @@ void main() {
 
       expect(model.screenings, [repository.screening]);
       expect(model.reservations, [repository.reservation]);
+      expect(model.activeReservationCount, 1);
       expect(repository.lastMovieId, 'm1');
       expect(repository.lastUserId, 'u1');
     });
@@ -72,11 +73,13 @@ void main() {
       );
       expect(created, isNull);
       expect(model.reservations.last.id, 'created-1');
+      expect(model.activeReservationCount, 2);
 
       final cancelled = await model.cancelReservation('created-1');
 
       expect(cancelled, isNull);
       expect(model.reservations.last.status, 'Отменено');
+      expect(model.activeReservationCount, 1);
       expect(model.reservationError, isNull);
     });
 

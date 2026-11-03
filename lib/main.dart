@@ -18,8 +18,9 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<CinemaRepository>(create: (_) => MockCinemaRepository()),
         ChangeNotifierProvider(
-          create: (context) =>
-              CinemaModel(context.read<CinemaRepository>())..loadMovies(),
+          create: (context) => CinemaModel(context.read<CinemaRepository>())
+            ..loadMovies()
+            ..loadReservations('u1'),
         ),
         ChangeNotifierProvider(create: (_) => SeatSelectionModel()),
       ],

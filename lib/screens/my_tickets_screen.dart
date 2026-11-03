@@ -31,7 +31,9 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     if (model.movies.isEmpty) {
       await model.loadMovies();
     }
-    await model.loadReservations('u1');
+    if (!model.hasLoadedReservations && !model.isReservationsLoading) {
+      await model.loadReservations('u1');
+    }
     await model.loadAllScreenings();
   }
 
