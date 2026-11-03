@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/cinema_model.dart';
 import '../models/movie.dart';
+import '../models/reservation.dart';
+import '../models/seat_selection_model.dart';
 import '../widgets/error_view.dart';
 import '../widgets/movie_poster.dart';
 
@@ -24,6 +27,31 @@ class BookingConfirmationScreen extends StatefulWidget {
 }
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  Future<void> _confirmBooking(double price) async {
+    final error = await context.read<CinemaModel>().createReservation(
+      Reservation(
+        id: '',
+        screeningId: widget.screeningId,
+        userId: 'u1',
+        seats: widget.seats,
+        totalPrice: price * widget.seats.length,
+        status: 'Подтверждено',
+      ),
+    );
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    context.read<SeatSelectionModel>().clearSelection(widget.screeningId);
+    context.go('/tickets');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Бронирование подтверждено')));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -204,14 +232,22 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: FilledButton(
-            onPressed: () {},
+            onPressed: model.isReservationSaving
+                ? null
+                : () => _confirmBooking(screening.price),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(54),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            child: const Text('Подтвердить бронирование'),
+            child: model.isReservationSaving
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Подтвердить бронирование'),
           ),
         ),
       ),

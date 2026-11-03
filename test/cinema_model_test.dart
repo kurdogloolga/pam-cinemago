@@ -70,12 +70,12 @@ void main() {
           status: 'Ожидает подтверждения',
         ),
       );
-      expect(created, isTrue);
+      expect(created, isNull);
       expect(model.reservations.last.id, 'created-1');
 
       final cancelled = await model.cancelReservation('created-1');
 
-      expect(cancelled, isTrue);
+      expect(cancelled, isNull);
       expect(model.reservations.last.status, 'Отменено');
       expect(model.reservationError, isNull);
     });
@@ -86,8 +86,16 @@ void main() {
 
       final created = await model.createReservation(repository.reservation);
 
-      expect(created, isFalse);
+      expect(created, 'Бронирование недоступно');
       expect(model.isReservationSaving, isFalse);
+      expect(model.reservationError, 'Бронирование недоступно');
+
+      repository.failReservationWrites = false;
+      await model.loadReservations('u1');
+      repository.failReservationWrites = true;
+      final cancelled = await model.cancelReservation('r1');
+
+      expect(cancelled, 'Бронирование недоступно');
       expect(model.reservationError, 'Бронирование недоступно');
     });
   });

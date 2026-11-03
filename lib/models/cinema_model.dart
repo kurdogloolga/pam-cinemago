@@ -107,7 +107,15 @@ class CinemaModel extends ChangeNotifier {
   }
 
   Future<void> loadAllScreenings() async {
-    await Future.wait(_movies.map((movie) => loadScreenings(movie.id)));
+    await Future.wait(
+      _movies
+          .where(
+            (movie) =>
+                !hasLoadedScreeningsFor(movie.id) &&
+                !isScreeningsLoadingFor(movie.id),
+          )
+          .map((movie) => loadScreenings(movie.id)),
+    );
   }
 
   Future<void> loadReservations(String userId) async {
@@ -127,7 +135,7 @@ class CinemaModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createReservation(Reservation reservation) async {
+  Future<String?> createReservation(Reservation reservation) async {
     _isReservationSaving = true;
     _reservationError = null;
     notifyListeners();
@@ -138,16 +146,16 @@ class CinemaModel extends ChangeNotifier {
         _reservations = List.unmodifiable([..._reservations, created]);
         _isReservationSaving = false;
         notifyListeners();
-        return true;
+        return null;
       case Err<Reservation>(msg: final message):
         _reservationError = message;
         _isReservationSaving = false;
         notifyListeners();
-        return false;
+        return message;
     }
   }
 
-  Future<bool> cancelReservation(String reservationId) async {
+  Future<String?> cancelReservation(String reservationId) async {
     _isReservationSaving = true;
     _reservationError = null;
     notifyListeners();
@@ -159,7 +167,7 @@ class CinemaModel extends ChangeNotifier {
       _reservationError = 'Бронирование не найдено';
       _isReservationSaving = false;
       notifyListeners();
-      return false;
+      return _reservationError;
     }
 
     final result = await _repository.updateReservation(
@@ -177,12 +185,12 @@ class CinemaModel extends ChangeNotifier {
         );
         _isReservationSaving = false;
         notifyListeners();
-        return true;
+        return null;
       case Err<Reservation>(msg: final message):
         _reservationError = message;
         _isReservationSaving = false;
         notifyListeners();
-        return false;
+        return message;
     }
   }
 }

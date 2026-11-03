@@ -35,6 +35,35 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     await model.loadAllScreenings();
   }
 
+  Future<void> _cancelReservation(String reservationId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отменить бронирование?'),
+        content: const Text('Вы действительно хотите отменить этот билет?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Оставить'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Отменить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final error = await context.read<CinemaModel>().cancelReservation(
+      reservationId,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error ?? 'Бронирование отменено')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = context.watch<CinemaModel>();
@@ -114,6 +143,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                   reservation: reservation,
                   screening: screening,
                   movie: movie,
+                  isSaving: model.isReservationSaving,
+                  onCancel: () => _cancelReservation(reservation.id),
                 ),
               );
             }),
@@ -155,12 +186,16 @@ class _TicketCard extends StatelessWidget {
   final Reservation reservation;
   final Screening screening;
   final Movie movie;
+  final bool isSaving;
+  final VoidCallback onCancel;
 
   const _TicketCard({
     super.key,
     required this.reservation,
     required this.screening,
     required this.movie,
+    required this.isSaving,
+    required this.onCancel,
   });
 
   @override
@@ -218,6 +253,19 @@ class _TicketCard extends StatelessWidget {
                               style: textTheme.bodySmall,
                             ),
                           ),
+                          if (reservation.status != 'Отменено')
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                child: TextButton.icon(
+                                  key: ValueKey('cancel-${reservation.id}'),
+                                  onPressed: isSaving ? null : onCancel,
+                                  icon: const Icon(Icons.cancel_outlined),
+                                  label: const Text('Отменить бронь'),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 5),

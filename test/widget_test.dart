@@ -117,6 +117,56 @@ void main() {
     expect(find.text('190 MDL'), findsNWidgets(2));
   });
 
+  testWidgets('confirming a booking adds it to my tickets', (tester) async {
+    await tester.pumpWidget(_routerApp());
+    appRouter.go(
+      '/movies/m1/screenings/s1/seats/confirmation?seats=C4&seats=C5',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Подтвердить бронирование'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    expect(appRouter.routeInformationProvider.value.uri.path, '/tickets');
+    expect(find.text('Бронирование подтверждено'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Места C4, C5'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Места C4, C5'), findsOneWidget);
+    expect(find.text('190 MDL'), findsOneWidget);
+  });
+
+  testWidgets('booking failure keeps the confirmation screen open', (
+    tester,
+  ) async {
+    final repository = MockCinemaRepository();
+    await tester.pumpWidget(_routerApp(repository: repository));
+    appRouter.go(
+      '/movies/m1/screenings/s1/seats/confirmation?seats=C4&seats=C5',
+    );
+    await tester.pumpAndSettle();
+
+    repository.simulateError = true;
+    await tester.tap(find.text('Подтвердить бронирование'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Подтверждение брони'), findsOneWidget);
+    expect(find.text('Сервер не отвечает — повторите попытку'), findsOneWidget);
+    expect(
+      appRouter.routeInformationProvider.value.uri.path,
+      contains('confirmation'),
+    );
+  });
+
   testWidgets('my tickets shows reservation details and statuses', (
     tester,
   ) async {
@@ -135,6 +185,31 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Места E4, E5'), findsOneWidget);
+  });
+
+  testWidgets('cancelling a ticket updates its status in the list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_routerApp());
+    appRouter.go('/tickets');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('cancel-r1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Отменить бронирование?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Отменить'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    final reservationCard = find.byKey(const ValueKey('reservation-r1'));
+    expect(
+      find.descendant(of: reservationCard, matching: find.text('Отменено')),
+      findsOneWidget,
+    );
+    expect(find.text('Бронирование отменено'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cancel-r1')), findsNothing);
   });
 
   testWidgets('profile shows account details and static settings', (
@@ -465,8 +540,12 @@ void main() {
   });
 }
 
-Widget _routerApp() {
-  return _providerApp(MaterialApp.router(routerConfig: appRouter));
+Widget _routerApp({MockCinemaRepository? repository}) {
+  appRouter.go('/login');
+  return _providerApp(
+    MaterialApp.router(routerConfig: appRouter),
+    repository: repository,
+  );
 }
 
 Widget _providerApp(Widget child, {MockCinemaRepository? repository}) {
