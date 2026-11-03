@@ -1,24 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
+import '../models/movie.dart';
+import '../models/screening.dart';
+import '../widgets/error_view.dart';
 import '../widgets/movie_poster.dart';
 
-class ScreeningSelectionScreen extends StatelessWidget {
-  final Movie movie;
+class ScreeningSelectionScreen extends StatefulWidget {
+  final String movieId;
 
-  const ScreeningSelectionScreen({super.key, required this.movie});
+  const ScreeningSelectionScreen({super.key, required this.movieId});
+
+  @override
+  State<ScreeningSelectionScreen> createState() =>
+      _ScreeningSelectionScreenState();
+}
+
+class _ScreeningSelectionScreenState extends State<ScreeningSelectionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadScreenings();
+      }
+    });
+  }
+
+  void _loadScreenings() {
+    final model = context.read<CinemaModel>();
+    if (!model.hasLoadedScreeningsFor(widget.movieId) &&
+        !model.isScreeningsLoadingFor(widget.movieId)) {
+      model.loadScreenings(widget.movieId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final model = context.watch<CinemaModel>();
+    if (model.isMoviesLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (model.moviesError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Выбор сеанса')),
+        body: ErrorView(
+          message: model.moviesError!,
+          onRetry: () => context.read<CinemaModel>().loadMovies(),
+        ),
+      );
+    }
+    final movie = model.movieById(widget.movieId);
+    if (movie == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Фильм не найден')),
+        body: Center(child: Text('Фильм не найден')),
+      );
+    }
+    final screeningsError = model.screeningsErrorFor(movie.id);
+    if (model.isScreeningsLoadingFor(movie.id)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Выбор сеанса')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (screeningsError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Выбор сеанса')),
+        body: ErrorView(message: screeningsError, onRetry: _loadScreenings),
+      );
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final screenings = mockScreenings
-        .where((screening) => screening.movieId == movie.id)
-        .toList()
-      ..sort(
-        (first, second) => first.dateTime.compareTo(second.dateTime),
-      );
+    final screenings = model.screeningsForMovie(movie.id).toList()
+      ..sort((first, second) => first.dateTime.compareTo(second.dateTime));
     final days = screenings.map((screening) => screening.day).toSet().toList();
     final selectedDay = days.firstOrNull;
     final dayScreenings = screenings
@@ -265,10 +323,7 @@ class _ScreeningCard extends StatelessWidget {
   final Screening screening;
   final bool selected;
 
-  const _ScreeningCard({
-    required this.screening,
-    required this.selected,
-  });
+  const _ScreeningCard({required this.screening, required this.selected});
 
   @override
   Widget build(BuildContext context) {

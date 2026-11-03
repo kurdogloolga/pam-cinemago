@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
+import '../models/movie.dart';
+import '../models/screening.dart';
 import '../models/seat_selection_model.dart';
+import '../widgets/error_view.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
-  final Movie movie;
-  final Screening screening;
+  final String movieId;
+  final String screeningId;
 
   const SeatSelectionScreen({
     super.key,
-    required this.movie,
-    required this.screening,
+    required this.movieId,
+    required this.screeningId,
   });
 
   @override
@@ -25,11 +28,61 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   String? _selectionError;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadScreening();
+      }
+    });
+  }
+
+  void _loadScreening() {
+    final model = context.read<CinemaModel>();
+    if (!model.hasLoadedScreeningsFor(widget.movieId) &&
+        !model.isScreeningsLoadingFor(widget.movieId)) {
+      model.loadScreenings(widget.movieId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final cinemaModel = context.watch<CinemaModel>();
+    if (cinemaModel.isMoviesLoading ||
+        cinemaModel.isScreeningsLoadingFor(widget.movieId)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Выбор мест')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final dataError =
+        cinemaModel.moviesError ??
+        cinemaModel.screeningsErrorFor(widget.movieId);
+    if (dataError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Выбор мест')),
+        body: ErrorView(
+          message: dataError,
+          onRetry: () async {
+            if (cinemaModel.moviesError != null) {
+              await context.read<CinemaModel>().loadMovies();
+            }
+            _loadScreening();
+          },
+        ),
+      );
+    }
+    final movie = cinemaModel.movieById(widget.movieId);
+    final screening = cinemaModel.screeningById(widget.screeningId);
+    if (movie == null || screening == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Сеанс не найден')),
+        body: const Center(child: Text('Сеанс не найден')),
+      );
+    }
+
     final selectionModel = context.watch<SeatSelectionModel>();
-    final selectedSeats = selectionModel
-        .selectedSeatsFor(widget.screening.id)
-        .toSet();
+    final selectedSeats = selectionModel.selectedSeatsFor(screening.id).toSet();
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Form(
@@ -42,19 +95,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             : null,
         builder: (field) {
           final selectedSeats = selectionModel
-              .selectedSeatsFor(widget.screening.id)
+              .selectedSeatsFor(screening.id)
               .toSet();
-          final total = widget.screening.price * selectedSeats.length;
+          final total = screening.price * selectedSeats.length;
 
           return Scaffold(
             appBar: AppBar(title: const Text('Выбор мест'), centerTitle: true),
             body: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
               children: [
-                _ScreeningSummary(
-                  movie: widget.movie,
-                  screening: widget.screening,
-                ),
+                _ScreeningSummary(movie: movie, screening: screening),
                 const SizedBox(height: 28),
                 Text(
                   'Выберите места',
@@ -86,16 +136,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _SeatGrid(
-                      takenSeats: widget.screening.seatsTaken.toSet(),
+                      takenSeats: screening.seatsTaken.toSet(),
                       selectedSeats: selectedSeats,
                       onSeatTap: (seat) {
                         context.read<SeatSelectionModel>().toggleSeat(
-                          widget.screening.id,
+                          screening.id,
                           seat,
                         );
                         final updatedSeats = context
                             .read<SeatSelectionModel>()
-                            .selectedSeatsFor(widget.screening.id)
+                            .selectedSeatsFor(screening.id)
                             .toSet();
                         setState(() {
                           _selectionError = null;
@@ -179,7 +229,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
                     final selectedSeats = context
                         .read<SeatSelectionModel>()
-                        .selectedSeatsFor(widget.screening.id);
+                        .selectedSeatsFor(screening.id);
                     final query = selectedSeats
                         .map(
                           (seat) => 'seats=${Uri.encodeQueryComponent(seat)}',
@@ -193,8 +243,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       ),
                     );
                     context.push(
-                      '/movies/${widget.movie.id}/screenings/'
-                      '${widget.screening.id}/seats/confirmation?$query',
+                      '/movies/${movie.id}/screenings/'
+                      '${screening.id}/seats/confirmation?$query',
                     );
                   },
                   style: FilledButton.styleFrom(

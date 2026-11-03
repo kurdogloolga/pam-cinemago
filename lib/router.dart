@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'data/mock_data.dart';
 import 'screens/booking_confirmation_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/movie_detail_screen.dart';
@@ -33,68 +31,26 @@ final appRouter = GoRouter(
                   routes: [
                     GoRoute(
                       path: 'screenings',
-                      builder: (context, state) {
-                        final movie = mockMovies
-                            .where(
-                              (movie) => movie.id == state.pathParameters['id'],
-                            )
-                            .firstOrNull;
-                        if (movie == null) {
-                          return _notFoundScreen('Фильм не найден');
-                        }
-                        return ScreeningSelectionScreen(movie: movie);
-                      },
+                      builder: (context, state) => ScreeningSelectionScreen(
+                        movieId: state.pathParameters['id']!,
+                      ),
                       routes: [
                         GoRoute(
                           path: ':screeningId/seats',
                           builder: (context, state) {
-                            final movie = mockMovies
-                                .where(
-                                  (movie) =>
-                                      movie.id == state.pathParameters['id'],
-                                )
-                                .firstOrNull;
-                            final screening = mockScreenings
-                                .where(
-                                  (screening) =>
-                                      screening.id ==
-                                      state.pathParameters['screeningId'],
-                                )
-                                .firstOrNull;
-                            if (movie == null || screening == null) {
-                              return _notFoundScreen('Сеанс не найден');
-                            }
                             return SeatSelectionScreen(
-                              movie: movie,
-                              screening: screening,
+                              movieId: state.pathParameters['id']!,
+                              screeningId: state.pathParameters['screeningId']!,
                             );
                           },
                           routes: [
                             GoRoute(
                               path: 'confirmation',
                               builder: (context, state) {
-                                final movie = mockMovies
-                                    .where(
-                                      (movie) =>
-                                          movie.id ==
-                                          state.pathParameters['id'],
-                                    )
-                                    .firstOrNull;
-                                final screening = mockScreenings
-                                    .where(
-                                      (screening) =>
-                                          screening.id ==
-                                          state.pathParameters['screeningId'],
-                                    )
-                                    .firstOrNull;
-                                if (movie == null || screening == null) {
-                                  return _notFoundScreen(
-                                    'Бронирование не найдено',
-                                  );
-                                }
                                 return BookingConfirmationScreen(
-                                  movie: movie,
-                                  screening: screening,
+                                  movieId: state.pathParameters['id']!,
+                                  screeningId:
+                                      state.pathParameters['screeningId']!,
                                   seats:
                                       state.uri.queryParametersAll['seats'] ??
                                       const [],
@@ -131,10 +87,3 @@ final appRouter = GoRouter(
     ),
   ],
 );
-
-Scaffold _notFoundScreen(String message) {
-  return Scaffold(
-    appBar: AppBar(title: const Text('Не найдено')),
-    body: Center(child: Text(message)),
-  );
-}

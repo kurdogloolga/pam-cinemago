@@ -1,6 +1,7 @@
 // widgets/movie_card.dart — вертикальная карточка фильма для сетки афиши
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+
+import '../models/movie.dart';
 import 'movie_poster.dart';
 
 class MovieCard extends StatelessWidget {
@@ -33,7 +34,10 @@ class MovieCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.scrim.withValues(alpha: 0.65),
                       borderRadius: BorderRadius.circular(12),
@@ -41,7 +45,11 @@ class MovieCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star, size: 14, color: scheme.inversePrimary),
+                        Icon(
+                          Icons.star,
+                          size: 14,
+                          color: scheme.inversePrimary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           movie.rating.toStringAsFixed(1),
@@ -68,7 +76,9 @@ class MovieCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '${movie.genre} · ${movie.year}',
-            style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            style: textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

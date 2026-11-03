@@ -1,6 +1,7 @@
 // widgets/movie_poster.dart — стилизованный постер-заглушка (градиент из цветов темы)
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+
+import '../models/movie.dart';
 
 class MoviePoster extends StatelessWidget {
   final Movie movie;

@@ -1,8 +1,12 @@
 import 'package:cinemago/data/mock_data.dart';
+import 'package:cinemago/data/cinema_repository.dart';
+import 'package:cinemago/data/mock_cinema_repository.dart';
+import 'package:cinemago/models/cinema_model.dart';
 import 'package:cinemago/models/seat_selection_model.dart';
 import 'package:cinemago/router.dart';
 import 'package:cinemago/screens/booking_confirmation_screen.dart';
 import 'package:cinemago/screens/login_screen.dart';
+import 'package:cinemago/screens/movies_screen.dart';
 import 'package:cinemago/screens/my_tickets_screen.dart';
 import 'package:cinemago/screens/profile_screen.dart';
 import 'package:cinemago/screens/seat_selection_screen.dart';
@@ -11,20 +15,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('movie list shows loading, error and retry states', (
+    tester,
+  ) async {
+    final repository = MockCinemaRepository()..simulateError = true;
+    await tester.pumpWidget(
+      _providerApp(
+        const MaterialApp(home: MoviesScreen()),
+        repository: repository,
+      ),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Сервер не отвечает — повторите попытку'), findsOneWidget);
+    expect(find.text('Повторить'), findsOneWidget);
+
+    repository.simulateError = false;
+    await tester.tap(find.text('Повторить'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Интерстеллар'), findsOneWidget);
+  });
+
   testWidgets('seat map shows 8 rows, 10 seats and all seat states', (
     tester,
   ) async {
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => SeatSelectionModel(),
-        child: MaterialApp(
-          home: SeatSelectionScreen(
-            movie: mockMovies.first,
-            screening: mockScreenings.first,
-          ),
+      _providerApp(
+        const MaterialApp(
+          home: SeatSelectionScreen(movieId: 'm1', screeningId: 's1'),
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.drag(find.byType(ListView), const Offset(0, -350));
     await tester.pumpAndSettle();
@@ -66,14 +90,17 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: BookingConfirmationScreen(
-          movie: mockMovies.first,
-          screening: mockScreenings.first,
-          seats: const ['C4', 'C5'],
+      _providerApp(
+        const MaterialApp(
+          home: BookingConfirmationScreen(
+            movieId: 'm1',
+            screeningId: 's1',
+            seats: ['C4', 'C5'],
+          ),
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('Подтверждение брони'), findsOneWidget);
     expect(find.text('Интерстеллар'), findsOneWidget);
@@ -93,7 +120,10 @@ void main() {
   testWidgets('my tickets shows reservation details and statuses', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: MyTicketsScreen()));
+    await tester.pumpWidget(
+      _providerApp(const MaterialApp(home: MyTicketsScreen())),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Ваши бронирования'), findsOneWidget);
     expect(mockReservations, hasLength(6));
@@ -436,8 +466,20 @@ void main() {
 }
 
 Widget _routerApp() {
-  return ChangeNotifierProvider(
-    create: (_) => SeatSelectionModel(),
-    child: MaterialApp.router(routerConfig: appRouter),
+  return _providerApp(MaterialApp.router(routerConfig: appRouter));
+}
+
+Widget _providerApp(Widget child, {MockCinemaRepository? repository}) {
+  final cinemaRepository = repository ?? MockCinemaRepository();
+  return MultiProvider(
+    providers: [
+      Provider<CinemaRepository>.value(value: cinemaRepository),
+      ChangeNotifierProvider(
+        create: (context) =>
+            CinemaModel(context.read<CinemaRepository>())..loadMovies(),
+      ),
+      ChangeNotifierProvider(create: (_) => SeatSelectionModel()),
+    ],
+    child: child,
   );
 }

@@ -1,9 +1,11 @@
 // screens/movies_screen.dart — Афиша: поиск + фильтр по жанру (визуально), сетка фильмов
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
 import '../widgets/movie_card.dart';
+import '../widgets/error_view.dart';
 
 class MoviesScreen extends StatelessWidget {
   const MoviesScreen({super.key});
@@ -11,16 +13,21 @@ class MoviesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final genres = ['Все', ...mockMovies.map((m) => m.genre).toSet()];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Афиша'),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
-        ],
-      ),
-      body: Column(
+    final model = context.watch<CinemaModel>();
+    final movies = model.movies;
+    final genres = ['Все', ...movies.map((movie) => movie.genre).toSet()];
+    final Widget body;
+    if (model.isMoviesLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (model.moviesError != null) {
+      body = ErrorView(
+        message: model.moviesError!,
+        onRetry: () => context.read<CinemaModel>().loadMovies(),
+      );
+    } else if (movies.isEmpty) {
+      body = const Center(child: Text('Фильмы не найдены'));
+    } else {
+      body = Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -62,9 +69,9 @@ class MoviesScreen extends StatelessWidget {
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.62,
               ),
-              itemCount: mockMovies.length,
+              itemCount: movies.length,
               itemBuilder: (context, index) {
-                final movie = mockMovies[index];
+                final movie = movies[index];
                 return MovieCard(
                   movie: movie,
                   onTap: () => context.push('/movies/${movie.id}'),
@@ -73,7 +80,20 @@ class MoviesScreen extends StatelessWidget {
             ),
           ),
         ],
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Афиша'),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.notifications_none),
+          ),
+        ],
       ),
+      body: body,
     );
   }
 }

@@ -1,17 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
+import '../models/movie.dart';
+import '../models/reservation.dart';
+import '../models/screening.dart';
+import '../widgets/error_view.dart';
 import '../widgets/movie_poster.dart';
 
-class MyTicketsScreen extends StatelessWidget {
+class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
 
   @override
+  State<MyTicketsScreen> createState() => _MyTicketsScreenState();
+}
+
+class _MyTicketsScreenState extends State<MyTicketsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadTickets();
+      }
+    });
+  }
+
+  Future<void> _loadTickets() async {
+    final model = context.read<CinemaModel>();
+    if (model.movies.isEmpty) {
+      await model.loadMovies();
+    }
+    await model.loadReservations('u1');
+    await model.loadAllScreenings();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final model = context.watch<CinemaModel>();
+    final isLoading =
+        model.isMoviesLoading ||
+        model.isReservationsLoading ||
+        model.isAnyScreeningsLoading;
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Мои билеты'), centerTitle: true),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final error =
+        model.moviesError ??
+        model.reservationsError ??
+        model.firstScreeningsError;
+    if (error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Мои билеты'), centerTitle: true),
+        body: ErrorView(message: error, onRetry: _loadTickets),
+      );
+    }
+
     final textTheme = Theme.of(context).textTheme;
-    final reservations = mockReservations
-        .where((reservation) => reservation.userId == 'u1')
-        .toList();
+    final reservations = model.reservations;
 
     return Scaffold(
       appBar: AppBar(
@@ -44,15 +93,30 @@ class MyTicketsScreen extends StatelessWidget {
           const SizedBox(height: 18),
           const _TicketFilters(),
           const SizedBox(height: 18),
-          ...reservations.map(
-            (reservation) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _TicketCard(
-                key: ValueKey('reservation-${reservation.id}'),
-                reservation: reservation,
-              ),
-            ),
-          ),
+          if (reservations.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('Бронирований пока нет')),
+            )
+          else
+            ...reservations.map((reservation) {
+              final screening = model.screeningById(reservation.screeningId);
+              final movie = screening == null
+                  ? null
+                  : model.movieById(screening.movieId);
+              if (screening == null || movie == null) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _TicketCard(
+                  key: ValueKey('reservation-${reservation.id}'),
+                  reservation: reservation,
+                  screening: screening,
+                  movie: movie,
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -83,29 +147,26 @@ class _TicketFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: null,
-    );
+    return ChoiceChip(label: Text(label), selected: selected, onSelected: null);
   }
 }
 
 class _TicketCard extends StatelessWidget {
   final Reservation reservation;
+  final Screening screening;
+  final Movie movie;
 
-  const _TicketCard({super.key, required this.reservation});
+  const _TicketCard({
+    super.key,
+    required this.reservation,
+    required this.screening,
+    required this.movie,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final screening = mockScreenings.firstWhere(
-      (item) => item.id == reservation.screeningId,
-    );
-    final movie = mockMovies.firstWhere(
-      (item) => item.id == screening.movieId,
-    );
     final (statusColor, statusBackground) = _statusColors(
       reservation.status,
       scheme,
@@ -232,10 +293,7 @@ class _TicketCard extends StatelessWidget {
   (Color, Color) _statusColors(String status, ColorScheme scheme) {
     return switch (status) {
       'Подтверждено' => (scheme.primary, scheme.primaryContainer),
-      'Ожидает оплаты' => (
-        scheme.tertiary,
-        scheme.tertiaryContainer,
-      ),
+      'Ожидает оплаты' => (scheme.tertiary, scheme.tertiaryContainer),
       'Отменено' => (scheme.error, scheme.errorContainer),
       _ => (scheme.onSurfaceVariant, scheme.surfaceContainerHighest),
     };

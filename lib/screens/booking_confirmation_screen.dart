@@ -1,25 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
+import '../models/movie.dart';
+import '../widgets/error_view.dart';
 import '../widgets/movie_poster.dart';
 
-class BookingConfirmationScreen extends StatelessWidget {
-  final Movie movie;
-  final Screening screening;
+class BookingConfirmationScreen extends StatefulWidget {
+  final String movieId;
+  final String screeningId;
   final List<String> seats;
 
   const BookingConfirmationScreen({
     super.key,
-    required this.movie,
-    required this.screening,
+    required this.movieId,
+    required this.screeningId,
     required this.seats,
   });
 
   @override
+  State<BookingConfirmationScreen> createState() =>
+      _BookingConfirmationScreenState();
+}
+
+class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadScreening();
+      }
+    });
+  }
+
+  void _loadScreening() {
+    final model = context.read<CinemaModel>();
+    if (!model.hasLoadedScreeningsFor(widget.movieId) &&
+        !model.isScreeningsLoadingFor(widget.movieId)) {
+      model.loadScreenings(widget.movieId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final model = context.watch<CinemaModel>();
+    if (model.isMoviesLoading || model.isScreeningsLoadingFor(widget.movieId)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Подтверждение брони')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final error = model.moviesError ?? model.screeningsErrorFor(widget.movieId);
+    if (error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Подтверждение брони')),
+        body: ErrorView(
+          message: error,
+          onRetry: () async {
+            if (model.moviesError != null) {
+              await context.read<CinemaModel>().loadMovies();
+            }
+            _loadScreening();
+          },
+        ),
+      );
+    }
+    final movie = model.movieById(widget.movieId);
+    final screening = model.screeningById(widget.screeningId);
+    if (movie == null || screening == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Подтверждение брони')),
+        body: const Center(child: Text('Бронирование не найдено')),
+      );
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final totalPrice = screening.price * seats.length;
+    final totalPrice = screening.price * widget.seats.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,7 +152,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: seats
+                              children: widget.seats
                                   .map(
                                     (seat) => Chip(
                                       label: Text(seat),
@@ -123,7 +181,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                 children: [
                   _PriceRow(
                     label:
-                        '${seats.length} ${_seatCountLabel(seats.length)} × '
+                        '${widget.seats.length} ${_seatCountLabel(widget.seats.length)} × '
                         '${screening.price.toStringAsFixed(0)} MDL',
                     value: '${totalPrice.toStringAsFixed(0)} MDL',
                   ),

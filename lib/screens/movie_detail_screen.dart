@@ -1,18 +1,57 @@
 // screens/movie_detail_screen.dart — карточка фильма: постер, описание, длительность, рейтинг, сеансы
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../data/mock_data.dart';
+import '../models/cinema_model.dart';
 import '../widgets/movie_poster.dart';
+import '../widgets/error_view.dart';
 
-class MovieDetailScreen extends StatelessWidget {
+class MovieDetailScreen extends StatefulWidget {
   final String id;
 
   const MovieDetailScreen({super.key, required this.id});
 
   @override
+  State<MovieDetailScreen> createState() => _MovieDetailScreenState();
+}
+
+class _MovieDetailScreenState extends State<MovieDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadScreenings();
+      }
+    });
+  }
+
+  void _loadScreenings() {
+    final model = context.read<CinemaModel>();
+    if (!model.hasLoadedScreeningsFor(widget.id) &&
+        !model.isScreeningsLoadingFor(widget.id)) {
+      model.loadScreenings(widget.id);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final movie = mockMovies.where((item) => item.id == id).firstOrNull;
+    final model = context.watch<CinemaModel>();
+    if (model.isMoviesLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (model.moviesError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Афиша')),
+        body: ErrorView(
+          message: model.moviesError!,
+          onRetry: () => context.read<CinemaModel>().loadMovies(),
+        ),
+      );
+    }
+
+    final movie = model.movieById(widget.id);
     if (movie == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Фильм не найден')),
@@ -22,9 +61,9 @@ class MovieDetailScreen extends StatelessWidget {
 
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final screenings =
-        mockScreenings.where((s) => s.movieId == movie.id).toList()
-          ..sort((first, second) => first.dateTime.compareTo(second.dateTime));
+    final screenings = model.screeningsForMovie(movie.id).toList()
+      ..sort((first, second) => first.dateTime.compareTo(second.dateTime));
+    final screeningsError = model.screeningsErrorFor(movie.id);
 
     return Scaffold(
       bottomNavigationBar: SafeArea(
@@ -92,15 +131,29 @@ class MovieDetailScreen extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       Chip(
-                        avatar: Icon(Icons.star, size: 18, color: scheme.primary),
-                        label: Text('${movie.rating.toStringAsFixed(1)} рейтинг'),
+                        avatar: Icon(
+                          Icons.star,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                        label: Text(
+                          '${movie.rating.toStringAsFixed(1)} рейтинг',
+                        ),
                       ),
                       Chip(
-                        avatar: Icon(Icons.timer_outlined, size: 18, color: scheme.primary),
+                        avatar: Icon(
+                          Icons.timer_outlined,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
                         label: Text('${movie.durationMin} мин'),
                       ),
                       Chip(
-                        avatar: Icon(Icons.local_movies_outlined, size: 18, color: scheme.primary),
+                        avatar: Icon(
+                          Icons.local_movies_outlined,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
                         label: Text(movie.genre),
                       ),
                     ],
@@ -115,23 +168,38 @@ class MovieDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   Text('Доступные сеансы', style: textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: screenings
-                          .map(
-                            (s) => ListTile(
-                              leading: Icon(Icons.schedule, color: scheme.primary),
-                              title: Text('${s.day} · ${s.time}'),
-                              subtitle: Text(s.hall),
-                              trailing: Text(
-                                '${s.price.toStringAsFixed(0)} MDL',
-                                style: textTheme.titleSmall,
+                  if (model.isScreeningsLoadingFor(movie.id))
+                    const Center(child: CircularProgressIndicator())
+                  else if (screeningsError != null)
+                    ErrorView(
+                      message: screeningsError,
+                      onRetry: _loadScreenings,
+                    )
+                  else if (screenings.isEmpty)
+                    const Text('Нет доступных сеансов')
+                  else
+                    Card(
+                      child: Column(
+                        children: screenings
+                            .map(
+                              (screening) => ListTile(
+                                leading: Icon(
+                                  Icons.schedule,
+                                  color: scheme.primary,
+                                ),
+                                title: Text(
+                                  '${screening.day} · ${screening.time}',
+                                ),
+                                subtitle: Text(screening.hall),
+                                trailing: Text(
+                                  '${screening.price.toStringAsFixed(0)} MDL',
+                                  style: textTheme.titleSmall,
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(),
+                            )
+                            .toList(),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
