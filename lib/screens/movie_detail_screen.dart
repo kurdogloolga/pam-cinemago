@@ -120,7 +120,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${movie.year} · ${movie.director}',
+                    '${movie.year ?? 'Год не указан'} · ${movie.director ?? 'Режиссёр не указан'}',
                     style: textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -162,7 +162,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   Text('О фильме', style: textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
-                    movie.description,
+                    movie.description ?? 'Описание не указано',
                     style: textTheme.bodyLarge?.copyWith(height: 1.5),
                   ),
                   const SizedBox(height: 24),

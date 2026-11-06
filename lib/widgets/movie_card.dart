@@ -75,7 +75,7 @@ class MovieCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${movie.genre} · ${movie.year}',
+            '${movie.genre} · ${movie.year ?? 'Год не указан'}',
             style: textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),

@@ -15,6 +15,23 @@ class Reservation {
     required this.status,
   });
 
+  factory Reservation.fromJson(Map<String, dynamic> json) => Reservation(
+    id: (json['id'] as int).toString(),
+    screeningId: (json['screeningId'] as int).toString(),
+    userId: (json['userId'] as int).toString(),
+    seats: List<String>.unmodifiable(
+      (json['seats'] as List).map((seat) => seat as String),
+    ),
+    totalPrice: (json['totalPrice'] as num).toDouble(),
+    status: json['status'] as String,
+  );
+
+  Map<String, Object> toJson() => {
+    'screeningId': int.parse(screeningId),
+    'seats': seats,
+    'status': status,
+  };
+
   Reservation copyWith({
     String? id,
     String? screeningId,
