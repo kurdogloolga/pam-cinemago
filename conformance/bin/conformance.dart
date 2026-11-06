@@ -30,6 +30,7 @@ class ConformanceRunner {
   int _failed = 0;
 
   String? _token;
+  int? _userId;
   int? _noteId;
   int? _fileId;
   Map<String, dynamic>? _fileMetadata;
@@ -181,6 +182,7 @@ class ConformanceRunner {
         'name': 'CinemaGo Test',
       });
       _token = response.json?['token'] as String?;
+      _userId = response.json?['user']?['id'] as int?;
       return response.statusCode == 201;
     });
     await check('registration returns a three-part JWT', () async {
@@ -348,6 +350,349 @@ class ConformanceRunner {
       final response = await _request(
         'GET',
         '/movies/9223372036854775807',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
+    final screeningDate = DateTime.now().toUtc().add(const Duration(days: 3));
+    final screeningBody = {
+      'movieId': movieId,
+      'hall': 'CinemaGo Hall $stamp',
+      'dateTime': screeningDate.toIso8601String(),
+      'price': 12.5,
+    };
+    int? screeningId;
+    await check('GET /screenings rejects requests without a token', () async {
+      final response = await _request('GET', '/screenings');
+      return response.statusCode == 401 &&
+          response.json?['error']?['code'] == 'UNAUTHORIZED';
+    });
+    await check('GET /screenings accepts the issued token', () async {
+      final response = await _request(
+        'GET',
+        '/screenings?movieId=$movieId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 200;
+    });
+    await check('GET /screenings returns a paginated envelope', () async {
+      final response = await _request(
+        'GET',
+        '/screenings?movieId=$movieId',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return data?['items'] is List &&
+          data?['page'] == 1 &&
+          data?['limit'] == 20 &&
+          data?['total'] == 0;
+    });
+    await check('POST /screenings creates a screening with 201', () async {
+      final response = await _request(
+        'POST',
+        '/screenings',
+        headers: authHeaders(),
+        jsonBody: screeningBody,
+      );
+      screeningId = response.json?['id'] as int?;
+      return response.statusCode == 201;
+    });
+    await check('created screening returns its fields and empty seatsTaken',
+        () async {
+      final response = await _request(
+        'GET',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return screeningId != null &&
+          data?['id'] == screeningId &&
+          data?['movieId'] == movieId &&
+          data?['hall'] == screeningBody['hall'] &&
+          data?['seatsTaken'] is List &&
+          (data!['seatsTaken'] as List).isEmpty;
+    });
+    await check('screening query filters by movieId and hall search', () async {
+      final uri = Uri.parse('$baseUrl/screenings').replace(
+        queryParameters: {
+          'movieId': '$movieId',
+          'search': 'Hall $stamp',
+        },
+      );
+      final response = await _request(
+        'GET',
+        '${uri.path}?${uri.query}',
+        headers: authHeaders(),
+      );
+      final items = response.json?['items'];
+      return items is List &&
+          items.length == 1 &&
+          items.single['id'] == screeningId;
+    });
+    await check('screening creation validates the price', () async {
+      final response = await _request(
+        'POST',
+        '/screenings',
+        headers: authHeaders(),
+        jsonBody: {...screeningBody, 'price': 0},
+      );
+      return response.statusCode == 400 &&
+          response.json?['error']?['code'] == 'VALIDATION_ERROR';
+    });
+    await check('movie cannot be deleted while screenings refer to it',
+        () async {
+      final response = await _request(
+        'DELETE',
+        '/movies/$movieId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 409 &&
+          response.json?['error']?['code'] == 'CONFLICT';
+    });
+    await check('PUT /screenings/{id} updates screening fields', () async {
+      final response = await _request(
+        'PUT',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+        jsonBody: {...screeningBody, 'hall': 'Updated Hall $stamp'},
+      );
+      return response.statusCode == 200 &&
+          response.json?['hall'] == 'Updated Hall $stamp';
+    });
+    await check('GET missing screening responds with standard 404', () async {
+      final response = await _request(
+        'GET',
+        '/screenings/9223372036854775807',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
+
+    final reservationBody = {
+      'screeningId': screeningId,
+      'userId': 9223372036854775807,
+      'seats': ['A1', 'A2'],
+      'totalPrice': 1,
+      'status': 'Подтверждено',
+    };
+    int? reservationId;
+    await check('GET /reservations rejects requests without a token', () async {
+      final response = await _request('GET', '/reservations');
+      return response.statusCode == 401 &&
+          response.json?['error']?['code'] == 'UNAUTHORIZED';
+    });
+    await check('GET /reservations returns the user-scoped envelope', () async {
+      final response = await _request(
+        'GET',
+        '/reservations',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return response.statusCode == 200 &&
+          data?['items'] is List &&
+          data?['page'] == 1 &&
+          data?['limit'] == 20 &&
+          data?['total'] == 0;
+    });
+    await check('POST /reservations creates a reservation with 201', () async {
+      final response = await _request(
+        'POST',
+        '/reservations',
+        headers: authHeaders(),
+        jsonBody: reservationBody,
+      );
+      reservationId = response.json?['id'] as int?;
+      return response.statusCode == 201;
+    });
+    await check(
+        'reservation uses authenticated user and server-calculated total',
+        () async {
+      final response = await _request(
+        'GET',
+        '/reservations/$reservationId',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return reservationId != null &&
+          data?['id'] == reservationId &&
+          data?['screeningId'] == screeningId &&
+          data?['userId'] == _userId &&
+          data?['seats'] is List &&
+          (data!['seats'] as List).join(',') == 'A1,A2' &&
+          data['totalPrice'] == 25 &&
+          data['status'] == 'Подтверждено';
+    });
+    await check('reservation seats appear in screening seatsTaken', () async {
+      final response = await _request(
+        'GET',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+      );
+      final seatsTaken = response.json?['seatsTaken'];
+      return seatsTaken is List && seatsTaken.join(',') == 'A1,A2';
+    });
+    await check('screening cannot be deleted while reservations refer to it',
+        () async {
+      final response = await _request(
+        'DELETE',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 409 &&
+          response.json?['error']?['code'] == 'CONFLICT';
+    });
+    await check('reservation cannot claim a seat already taken', () async {
+      final response = await _request(
+        'POST',
+        '/reservations',
+        headers: authHeaders(),
+        jsonBody: {
+          ...reservationBody,
+          'seats': ['A2', 'B1']
+        },
+      );
+      return response.statusCode == 409 &&
+          response.json?['error']?['code'] == 'SEAT_UNAVAILABLE';
+    });
+    await check('reservation rejects malformed and null seats', () async {
+      for (final seats in [
+        ['A01'],
+        [null],
+        <String>[],
+        ['H11'],
+      ]) {
+        final response = await _request(
+          'POST',
+          '/reservations',
+          headers: authHeaders(),
+          jsonBody: {...reservationBody, 'seats': seats},
+        );
+        if (response.statusCode != 400 ||
+            response.json?['error']?['code'] != 'VALIDATION_ERROR') {
+          return false;
+        }
+      }
+      return true;
+    });
+    await check('reservation supports more than eight seats', () async {
+      final response = await _request(
+        'POST',
+        '/reservations',
+        headers: authHeaders(),
+        jsonBody: {
+          ...reservationBody,
+          'seats': [for (var i = 1; i <= 9; i++) 'B$i'],
+        },
+      );
+      final id = response.json?['id'];
+      if (response.statusCode != 201 || id is! int) return false;
+      final deleted = await _request(
+        'DELETE',
+        '/reservations/$id',
+        headers: authHeaders(),
+      );
+      return deleted.statusCode == 204;
+    });
+    await check('reservation list supports pagination and seat search',
+        () async {
+      final response = await _request(
+        'GET',
+        '/reservations?page=1&limit=1&search=A1',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      final items = data?['items'];
+      return data?['page'] == 1 &&
+          data?['limit'] == 1 &&
+          data?['total'] == 1 &&
+          items is List &&
+          items.single['id'] == reservationId;
+    });
+    await check('screening price can be updated', () async {
+      final response = await _request(
+        'PUT',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+        jsonBody: {...screeningBody, 'price': 20},
+      );
+      return response.statusCode == 200 && response.json?['price'] == 20;
+    });
+    await check('cancellation keeps the original reservation total', () async {
+      final response = await _request(
+        'PUT',
+        '/reservations/$reservationId',
+        headers: authHeaders(),
+        jsonBody: {
+          ...reservationBody,
+          'status': 'Отменено',
+        },
+      );
+      return response.statusCode == 200 &&
+          response.json?['status'] == 'Отменено' &&
+          response.json?['totalPrice'] == 25;
+    });
+    await check('cancelled reservation releases its seats', () async {
+      final response = await _request(
+        'GET',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+      );
+      return response.json?['seatsTaken'] is List &&
+          (response.json!['seatsTaken'] as List).isEmpty;
+    });
+    await check('another authenticated user cannot read the reservation',
+        () async {
+      final otherEmail = 'cinemago-other-$stamp@example.test';
+      final registration = await _request(
+        'POST',
+        '/auth/register',
+        jsonBody: {
+          'email': otherEmail,
+          'password': password,
+          'name': 'Other CinemaGo User',
+        },
+      );
+      final otherToken = registration.json?['token'] as String?;
+      if (registration.statusCode != 201 || otherToken == null) return false;
+      final response = await _request(
+        'GET',
+        '/reservations/$reservationId',
+        headers: {'Authorization': 'Bearer $otherToken'},
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
+    await check('DELETE /reservations/{id} responds with 204', () async {
+      final response = await _request(
+        'DELETE',
+        '/reservations/$reservationId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 204 && response.body.isEmpty;
+    });
+    await check('deleted reservation is no longer available', () async {
+      final response = await _request(
+        'GET',
+        '/reservations/$reservationId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
+    await check('DELETE /screenings/{id} responds with 204', () async {
+      final response = await _request(
+        'DELETE',
+        '/screenings/$screeningId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 204 && response.body.isEmpty;
+    });
+    await check('deleted screening is no longer available', () async {
+      final response = await _request(
+        'GET',
+        '/screenings/$screeningId',
         headers: authHeaders(),
       );
       return response.statusCode == 404 &&

@@ -43,6 +43,23 @@ public static class Db
               rating       REAL    NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS screenings (
+              id          INTEGER PRIMARY KEY AUTOINCREMENT,
+              movie_id    INTEGER NOT NULL REFERENCES movies (id),
+              hall        TEXT    NOT NULL,
+              date_time   TEXT    NOT NULL,
+              price       REAL    NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS reservations (
+              id            INTEGER PRIMARY KEY AUTOINCREMENT,
+              screening_id  INTEGER NOT NULL REFERENCES screenings (id),
+              user_id       INTEGER NOT NULL REFERENCES users (id),
+              seats_json    TEXT    NOT NULL,
+              total_price   REAL    NOT NULL,
+              status        TEXT    NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS files (
               id         INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id    INTEGER NOT NULL REFERENCES users (id),

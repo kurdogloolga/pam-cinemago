@@ -19,7 +19,7 @@ dart pub get
 dart run bin\conformance.dart --base-url http://localhost:8080
 ```
 
-The runner checks the template's health, authentication, protected notes CRUD,
-pagination/search, standard errors, and file upload/download over HTTP. It
-creates a uniquely named test account and file; the note it creates is deleted
-before the run finishes.
+The runner checks health, authentication, the CinemaGo movies/screenings/
+reservations API, the protected notes example, pagination/search, standard
+errors, and file upload/download over HTTP. It creates a uniquely named test
+account, movie, screening, reservation, note, and file in the server's database.

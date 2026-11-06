@@ -132,6 +132,14 @@ public static class Movies
         using var conn = Db.Open();
         if (Find(conn, id) is null) return Errors.NotFound("Movie not found");
 
+        using (var count = conn.Cmd(
+                   "SELECT COUNT(*) FROM screenings WHERE movie_id = $id",
+                   ("$id", id)))
+        {
+            if ((long)count.ExecuteScalar()! > 0)
+                return Errors.Error(409, "CONFLICT", "Movie has screenings");
+        }
+
         using (var delete = conn.Cmd("DELETE FROM movies WHERE id = $id", ("$id", id)))
         {
             delete.ExecuteNonQuery();

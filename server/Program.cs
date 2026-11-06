@@ -40,6 +40,22 @@ movies.MapGet("/{id:long}", Movies.GetOne);
 movies.MapPut("/{id:long}", Movies.Update);
 movies.MapDelete("/{id:long}", Movies.Delete);
 
+// Screenings expose current seat availability derived from active reservations.
+var screenings = app.MapGroup("/screenings").AddEndpointFilter(Auth.RequireAuth);
+screenings.MapGet("", Screenings.ListEndpoint);
+screenings.MapPost("", Screenings.Create);
+screenings.MapGet("/{id:long}", Screenings.GetOne);
+screenings.MapPut("/{id:long}", Screenings.Update);
+screenings.MapDelete("/{id:long}", Screenings.Delete);
+
+// Reservations are scoped to the authenticated user; the client cannot pick a userId.
+var reservations = app.MapGroup("/reservations").AddEndpointFilter(Auth.RequireAuth);
+reservations.MapGet("", Reservations.List);
+reservations.MapPost("", Reservations.Create);
+reservations.MapGet("/{id:long}", Reservations.GetOne);
+reservations.MapPut("/{id:long}", Reservations.Update);
+reservations.MapDelete("/{id:long}", Reservations.Delete);
+
 // Notes: the example entity. Register your own routes the same way.
 var notes = app.MapGroup("/notes").AddEndpointFilter(Auth.RequireAuth);
 notes.MapGet("", Notes.List);

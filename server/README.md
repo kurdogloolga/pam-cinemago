@@ -54,6 +54,13 @@ The CinemaGo movie catalog is available at the authenticated `/movies` routes:
 `GET`/`POST /movies` and `GET`/`PUT`/`DELETE /movies/{id}`. Listing supports
 `page`, `limit`, and `search` query parameters.
 
+Screenings are available at authenticated `GET`/`POST /screenings` and
+`GET`/`PUT`/`DELETE /screenings/{id}` routes. Filter them with `movieId`;
+`seatsTaken` is derived from active reservations. Authenticated reservation
+routes are `GET`/`POST /reservations` and `GET`/`PUT`/`DELETE
+/reservations/{id}`. Reservations are scoped to the signed-in user, and the
+server calculates their total from the screening price and selected seats.
+
 Fără controllere MVC și fără EF Core: rute Minimal API și SQL parametrizat
 prin `Microsoft.Data.Sqlite` — fiecare interogare rămâne vizibilă în cod.
 
