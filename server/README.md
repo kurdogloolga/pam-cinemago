@@ -50,6 +50,10 @@ Files.cs   — upload multipart, download binar
 Errors.cs  — formatul standard de eroare + middleware-ul global de erori
 ```
 
+The CinemaGo movie catalog is available at the authenticated `/movies` routes:
+`GET`/`POST /movies` and `GET`/`PUT`/`DELETE /movies/{id}`. Listing supports
+`page`, `limit`, and `search` query parameters.
+
 Fără controllere MVC și fără EF Core: rute Minimal API și SQL parametrizat
 prin `Microsoft.Data.Sqlite` — fiecare interogare rămâne vizibilă în cod.
 

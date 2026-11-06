@@ -34,6 +34,15 @@ public static class Db
               created_at TEXT    NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS movies (
+              id           INTEGER PRIMARY KEY AUTOINCREMENT,
+              title        TEXT    NOT NULL,
+              genre        TEXT    NOT NULL,
+              duration_min INTEGER NOT NULL,
+              poster_url   TEXT    NOT NULL DEFAULT '',
+              rating       REAL    NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS files (
               id         INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id    INTEGER NOT NULL REFERENCES users (id),

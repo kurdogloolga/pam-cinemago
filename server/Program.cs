@@ -32,6 +32,14 @@ app.MapPost("/auth/register", Auth.Register);
 app.MapPost("/auth/login", Auth.Login);
 app.MapGet("/me", Auth.Me).AddEndpointFilter(Auth.RequireAuth);
 
+// Movies are a shared cinema catalog; all operations still require a token.
+var movies = app.MapGroup("/movies").AddEndpointFilter(Auth.RequireAuth);
+movies.MapGet("", Movies.List);
+movies.MapPost("", Movies.Create);
+movies.MapGet("/{id:long}", Movies.GetOne);
+movies.MapPut("/{id:long}", Movies.Update);
+movies.MapDelete("/{id:long}", Movies.Delete);
+
 // Notes: the example entity. Register your own routes the same way.
 var notes = app.MapGroup("/notes").AddEndpointFilter(Auth.RequireAuth);
 notes.MapGet("", Notes.List);

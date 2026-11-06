@@ -245,6 +245,131 @@ class ConformanceRunner {
       final response = await _request('GET', '/me', headers: authHeaders());
       return response.json?['email'] == _email;
     });
+    final movieTitle = 'CinemaGo movie $stamp';
+    final movieBody = {
+      'title': movieTitle,
+      'genre': 'drama',
+      'durationMin': 120,
+      'posterUrl': 'https://example.test/poster.jpg',
+      'rating': 8.5,
+    };
+    int? movieId;
+    await check('GET /movies rejects requests without a token', () async {
+      final response = await _request('GET', '/movies');
+      return response.statusCode == 401 &&
+          response.json?['error']?['code'] == 'UNAUTHORIZED';
+    });
+    await check('GET /movies accepts the issued token', () async {
+      final response = await _request('GET', '/movies', headers: authHeaders());
+      return response.statusCode == 200;
+    });
+    await check('GET /movies returns the paginated envelope', () async {
+      final response = await _request('GET', '/movies', headers: authHeaders());
+      final data = response.json;
+      return data?['items'] is List &&
+          data?['page'] == 1 &&
+          data?['limit'] == 20 &&
+          data?['total'] is int;
+    });
+    await check('POST /movies creates a movie with 201', () async {
+      final response = await _request(
+        'POST',
+        '/movies',
+        headers: authHeaders(),
+        jsonBody: movieBody,
+      );
+      movieId = response.json?['id'] as int?;
+      return response.statusCode == 201;
+    });
+    await check('created movie returns the CinemaGo fields', () async {
+      final response = await _request(
+        'GET',
+        '/movies/$movieId',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return movieId != null &&
+          data?['id'] == movieId &&
+          data?['title'] == movieTitle &&
+          data?['genre'] == 'drama' &&
+          data?['durationMin'] == 120 &&
+          data?['posterUrl'] == 'https://example.test/poster.jpg' &&
+          data?['rating'] == 8.5;
+    });
+    await check('movie list includes the created movie', () async {
+      final response = await _request('GET', '/movies', headers: authHeaders());
+      final items = response.json?['items'];
+      return items is List &&
+          items.any((item) => item is Map && item['id'] == movieId);
+    });
+    await check('movie listing supports server-side pagination', () async {
+      final response = await _request(
+        'GET',
+        '/movies?page=1&limit=1',
+        headers: authHeaders(),
+      );
+      final data = response.json;
+      return data?['page'] == 1 && data?['limit'] == 1;
+    });
+    await check('movie listing supports server-side search', () async {
+      final uri = Uri.parse('$baseUrl/movies').replace(
+        queryParameters: {'search': movieTitle},
+      );
+      final response = await _request(
+        'GET',
+        '${uri.path}?${uri.query}',
+        headers: authHeaders(),
+      );
+      final items = response.json?['items'];
+      return items is List &&
+          items.any((item) => item is Map && item['id'] == movieId);
+    });
+    await check('POST /movies validates required fields and rating', () async {
+      final response = await _request(
+        'POST',
+        '/movies',
+        headers: authHeaders(),
+        jsonBody: {...movieBody, 'rating': 11},
+      );
+      return response.statusCode == 400 &&
+          response.json?['error']?['code'] == 'VALIDATION_ERROR';
+    });
+    await check('PUT /movies/{id} updates movie fields', () async {
+      final response = await _request(
+        'PUT',
+        '/movies/$movieId',
+        headers: authHeaders(),
+        jsonBody: {...movieBody, 'title': '$movieTitle updated'},
+      );
+      return response.statusCode == 200 &&
+          response.json?['title'] == '$movieTitle updated';
+    });
+    await check('GET missing movie responds with standard 404', () async {
+      final response = await _request(
+        'GET',
+        '/movies/9223372036854775807',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
+    await check('DELETE /movies/{id} responds with 204', () async {
+      final response = await _request(
+        'DELETE',
+        '/movies/$movieId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 204 && response.body.isEmpty;
+    });
+    await check('deleted movie is no longer available', () async {
+      final response = await _request(
+        'GET',
+        '/movies/$movieId',
+        headers: authHeaders(),
+      );
+      return response.statusCode == 404 &&
+          response.json?['error']?['code'] == 'NOT_FOUND';
+    });
     await check('GET /notes accepts the issued token', () async {
       final response = await _request('GET', '/notes', headers: authHeaders());
       return response.statusCode == 200;
