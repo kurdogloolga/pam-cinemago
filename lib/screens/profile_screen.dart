@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../data/auth_api.dart';
 import '../data/mock_cinema_repository.dart';
 import '../models/cinema_model.dart';
 
@@ -35,7 +37,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (ok == true && context.mounted) {
-      context.go('/login');
+      try {
+        await context.read<AuthApi>().logout();
+      } on StateError {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось выйти из аккаунта')),
+          );
+        }
+        return;
+      } on PlatformException {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось выйти из аккаунта')),
+          );
+        }
+        return;
+      }
+      if (context.mounted) context.go('/login');
     }
   }
 

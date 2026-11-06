@@ -10,8 +10,10 @@ import 'screens/screening_selection_screen.dart';
 import 'screens/seat_selection_screen.dart';
 import 'widgets/app_shell.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/login',
+final appRouter = createAppRouter();
+
+GoRouter createAppRouter({bool loggedIn = false}) => GoRouter(
+  initialLocation: loggedIn ? '/movies' : '/login',
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     StatefulShellRoute.indexedStack(

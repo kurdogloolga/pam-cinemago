@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:cinemago/data/auth_api.dart';
 import 'package:cinemago/data/mock_data.dart';
 import 'package:cinemago/data/cinema_repository.dart';
 import 'package:cinemago/data/mock_cinema_repository.dart';
+import 'package:cinemago/data/token_store.dart';
 import 'package:cinemago/models/cinema_model.dart';
 import 'package:cinemago/models/seat_selection_model.dart';
 import 'package:cinemago/router.dart';
@@ -12,9 +17,16 @@ import 'package:cinemago/screens/profile_screen.dart';
 import 'package:cinemago/screens/seat_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('movie list shows loading, error and retry states', (
     tester,
   ) async {
@@ -333,6 +345,7 @@ void main() {
   testWidgets('profile logout confirmation returns to login without back', (
     tester,
   ) async {
+    await TokenStore().save('test-token');
     await tester.pumpWidget(_routerApp());
     appRouter.go('/profile');
     await tester.pumpAndSettle();
@@ -350,6 +363,7 @@ void main() {
     expect(find.text('Вход / регистрация'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(appRouter.canPop(), isFalse);
+    expect(await TokenStore().read(), isNull);
   });
 
   testWidgets('login screen has email and obscured password form fields', (
@@ -406,6 +420,142 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Вход / регистрация'), findsNothing);
     expect(appRouter.canPop(), isFalse);
+    expect(await TokenStore().read(), 'test-token');
+  });
+
+  testWidgets('registration requires name and submits it to the API', (
+    tester,
+  ) async {
+    final client = MockClient((request) async {
+      expect(request.url.path, '/auth/register');
+      expect(jsonDecode(request.body), {
+        'name': 'Ольга',
+        'email': 'viewer@example.com',
+        'password': '123456',
+      });
+      return http.Response('{"token":"registered-token"}', 201);
+    });
+    await tester.pumpWidget(
+      _routerApp(auth: AuthApi('http://test', TokenStore(), client: client)),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Зарегистрируйтесь'));
+    await tester.tap(find.text('Зарегистрируйтесь'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'Зарегистрироваться'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Зарегистрироваться'));
+    await tester.pumpAndSettle();
+    expect(find.text('Введите имя'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Имя'),
+      ' Ольга ',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Электронная почта'),
+      ' viewer@example.com ',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Пароль'),
+      '123456',
+    );
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'Зарегистрироваться'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Зарегистрироваться'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Афиша'), findsWidgets);
+    expect(await TokenStore().read(), 'registered-token');
+    client.close();
+  });
+
+  testWidgets('login displays translated error and stays on login', (
+    tester,
+  ) async {
+    final client = MockClient(
+      (_) async => http.Response(
+        '{"error":{"code":"UNAUTHORIZED","message":"Invalid credentials"}}',
+        401,
+      ),
+    );
+    await tester.pumpWidget(
+      _routerApp(auth: AuthApi('http://test', TokenStore(), client: client)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'viewer@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
+    await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Неверный email или пароль'), findsOneWidget);
+    expect(appRouter.routeInformationProvider.value.uri.path, '/login');
+    expect(await TokenStore().read(), isNull);
+    client.close();
+  });
+
+  testWidgets('login prevents duplicate submissions during a request', (
+    tester,
+  ) async {
+    final response = Completer<http.Response>();
+    var requests = 0;
+    final client = MockClient((_) {
+      requests++;
+      return response.future;
+    });
+    await tester.pumpWidget(
+      _routerApp(auth: AuthApi('http://test', TokenStore(), client: client)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'viewer@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
+    await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Войти'))
+          .onPressed,
+      isNull,
+    );
+    expect(requests, 1);
+    response.complete(http.Response('{"token":"test-token"}', 200));
+    await tester.pumpAndSettle();
+    expect(find.text('Афиша'), findsWidgets);
+    client.close();
+  });
+
+  testWidgets('startup router chooses movies only for a saved token', (
+    tester,
+  ) async {
+    final tokens = TokenStore();
+    final firstRouter = createAppRouter(loggedIn: await tokens.read() != null);
+    await tester.pumpWidget(
+      _providerApp(MaterialApp.router(routerConfig: firstRouter)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Вход / регистрация'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    firstRouter.dispose();
+
+    await tokens.save('saved-token');
+    final reopenedRouter = createAppRouter(
+      loggedIn: await TokenStore().read() != null,
+    );
+    await tester.pumpWidget(
+      _providerApp(MaterialApp.router(routerConfig: reopenedRouter)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Афиша'), findsWidgets);
+    await tester.pumpWidget(const SizedBox());
+    reopenedRouter.dispose();
   });
 
   testWidgets('router opens all required CinemaGo screens by their paths', (
@@ -608,18 +758,34 @@ void main() {
   });
 }
 
-Widget _routerApp({MockCinemaRepository? repository}) {
+Widget _routerApp({MockCinemaRepository? repository, AuthApi? auth}) {
   appRouter.go('/login');
   return _providerApp(
     MaterialApp.router(routerConfig: appRouter),
     repository: repository,
+    auth: auth,
   );
 }
 
-Widget _providerApp(Widget child, {MockCinemaRepository? repository}) {
+Widget _providerApp(
+  Widget child, {
+  MockCinemaRepository? repository,
+  AuthApi? auth,
+}) {
   final cinemaRepository = repository ?? MockCinemaRepository();
   return MultiProvider(
     providers: [
+      Provider<AuthApi>.value(
+        value:
+            auth ??
+            AuthApi(
+              'http://test',
+              TokenStore(),
+              client: MockClient(
+                (_) async => http.Response('{"token":"test-token"}', 200),
+              ),
+            ),
+      ),
       Provider<MockCinemaRepository>.value(value: cinemaRepository),
       Provider<CinemaRepository>.value(value: cinemaRepository),
       ChangeNotifierProvider(
