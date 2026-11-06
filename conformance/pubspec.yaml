@@ -1,0 +1,5 @@
+name: cinemago_backend_conformance
+description: Local HTTP contract checks for the PAM .NET backend template.
+publish_to: none
+environment:
+  sdk: '>=3.0.0 <4.0.0'
