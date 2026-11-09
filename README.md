@@ -60,6 +60,21 @@ The movie catalog requests 20 records at a time. Scroll to the bottom to load
 the next page; the search field and genre chips send their query to the server,
 and clearing the search returns to the first unfiltered page.
 
+Movie posters use the public `GET /files/{id}` URL returned by the authenticated
+`POST /files` multipart endpoint. `FileApi.upload(path)` sends the local file
+under the multipart field `file`; set its returned relative URL as `posterUrl`
+when creating or updating a movie. The integration test demonstrates upload,
+movie update and download:
+
+```powershell
+flutter test --no-pub --dart-define=AUTH_TEST_BASE_URL=http://127.0.0.1:8080 test\file_api_integration_test.dart
+```
+
+Use an isolated, disposable test database and uploads directory: the API keeps
+uploaded files, and does not provide a file-delete endpoint. The app displays
+uploaded posters from movie data; this laboratory step uses a local test file
+and does not add a separate catalog-management screen or a file-picker plugin.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

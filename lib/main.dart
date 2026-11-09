@@ -25,28 +25,41 @@ Future<void> main() async {
     onUnauthorized: () => router.go('/login'),
   );
   router = createAppRouter(loggedIn: loggedIn, repository: repository);
-  runApp(MyApp(auth: AuthApi(apiBase, tokens), router: router));
+  runApp(
+    MyApp(auth: AuthApi(apiBase, tokens), router: router, apiBaseUrl: apiBase),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, required this.auth, required this.router});
+  const MyApp({
+    super.key,
+    required this.auth,
+    required this.router,
+    this.apiBaseUrl = 'http://localhost:8080',
+  });
 
   final AuthApi auth;
   final GoRouter router;
+  final String apiBaseUrl;
 
   @override
   Widget build(BuildContext context) {
     return Provider<AuthApi>.value(
       value: auth,
-      child: MaterialApp.router(
-        title: 'CinemaGo',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE53935)),
-          textTheme: const TextTheme(
-            titleLarge: TextStyle(fontWeight: FontWeight.w600),
+      child: Provider<String>.value(
+        value: apiBaseUrl,
+        child: MaterialApp.router(
+          title: 'CinemaGo',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFE53935),
+            ),
+            textTheme: const TextTheme(
+              titleLarge: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
+          routerConfig: router,
         ),
-        routerConfig: router,
       ),
     );
   }
