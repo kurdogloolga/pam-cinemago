@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cinemago/data/cinema_repository.dart';
 import 'package:cinemago/data/result.dart';
 import 'package:cinemago/models/cinema_model.dart';
@@ -40,6 +42,97 @@ void main() {
 
       expect(model.movies, [repository.movie]);
       expect(model.moviesError, isNull);
+    });
+
+    test(
+      'searches and appends movie pages, then stops at the final page',
+      () async {
+        final repository = _FakeCinemaRepository()
+          ..additionalMovies = List.generate(
+            44,
+            (index) => Movie(
+              id: 'm${index + 2}',
+              title: 'Фильм ${index + 1}',
+              genre: 'драма',
+              year: null,
+              director: null,
+              durationMin: 90,
+              posterUrl: '',
+              rating: 7,
+              description: null,
+            ),
+          );
+        final model = CinemaModel(repository);
+
+        await model.loadMovies(search: ' драма ');
+        expect(model.movieSearch, 'драма');
+        expect(model.movies, hasLength(20));
+        expect(model.hasMoreMovies, isTrue);
+
+        await model.loadMoreMovies();
+        expect(model.movies, hasLength(40));
+        expect(model.hasMoreMovies, isTrue);
+
+        await model.loadMoreMovies();
+        expect(model.movies, hasLength(45));
+        expect(model.hasMoreMovies, isFalse);
+        expect(repository.requestedPages, [1, 2, 3]);
+        expect(repository.requestedSearches, ['драма', 'драма', 'драма']);
+
+        await model.loadMoreMovies();
+        expect(repository.requestedPages, [1, 2, 3]);
+      },
+    );
+
+    test(
+      'retries the next movie page without losing already loaded movies',
+      () async {
+        final repository = _FakeCinemaRepository()
+          ..additionalMovies = List.generate(
+            20,
+            (index) => Movie(
+              id: 'm${index + 2}',
+              title: 'Фильм ${index + 1}',
+              genre: 'драма',
+              year: null,
+              director: null,
+              durationMin: 90,
+              posterUrl: '',
+              rating: 7,
+              description: null,
+            ),
+          );
+        final model = CinemaModel(repository);
+        await model.loadMovies(search: 'драма');
+        repository.failNextMoviePage = true;
+
+        await model.loadMoreMovies();
+        expect(model.movies, hasLength(20));
+        expect(model.moviesMoreError, 'Каталог недоступен');
+        expect(model.hasMoreMovies, isTrue);
+
+        await model.loadMoreMovies();
+        expect(model.movies, hasLength(21));
+        expect(model.moviesMoreError, isNull);
+        expect(repository.requestedPages, [1, 2, 2]);
+        expect(repository.requestedSearches, ['драма', 'драма', 'драма']);
+      },
+    );
+
+    test('ignores an older movie search response that finishes last', () async {
+      final repository = _RacingMovieRepository();
+      final model = CinemaModel(repository);
+      final olderSearch = model.loadMovies(search: 'older');
+      final newerSearch = model.loadMovies(search: 'newer');
+
+      repository.newer.complete(Ok([repository.resultMovie('Newer result')]));
+      await newerSearch;
+      repository.older.complete(Ok([repository.resultMovie('Older result')]));
+      await olderSearch;
+
+      expect(model.movieSearch, 'newer');
+      expect(model.movies.single.title, 'Newer result');
+      expect(model.isMoviesLoading, isFalse);
     });
 
     test('loads screenings and reservations using their identifiers', () async {
@@ -104,6 +197,30 @@ void main() {
   });
 }
 
+class _RacingMovieRepository extends _FakeCinemaRepository {
+  final older = Completer<Result<List<Movie>>>();
+  final newer = Completer<Result<List<Movie>>>();
+
+  Movie resultMovie(String title) => Movie(
+    id: movie.id,
+    title: title,
+    genre: movie.genre,
+    year: movie.year,
+    director: movie.director,
+    durationMin: movie.durationMin,
+    posterUrl: movie.posterUrl,
+    rating: movie.rating,
+    description: movie.description,
+  );
+
+  @override
+  Future<Result<List<Movie>>> fetchMovies({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) => search == 'older' ? older.future : newer.future;
+}
+
 class _FakeCinemaRepository implements CinemaRepository {
   final movie = const Movie(
     id: 'm1',
@@ -134,25 +251,55 @@ class _FakeCinemaRepository implements CinemaRepository {
   );
 
   bool failMovies = false;
+  bool failNextMoviePage = false;
   bool failReservationWrites = false;
   String? lastMovieId;
   String? lastUserId;
   int _nextId = 1;
   final List<Reservation> _reservations = [];
+  List<Movie> additionalMovies = const [];
+  final List<int> requestedPages = [];
+  final List<String?> requestedSearches = [];
 
   @override
-  Future<Result<List<Movie>>> fetchMovies() async {
-    return failMovies ? const Err('Каталог недоступен') : Ok([movie]);
+  Future<Result<List<Movie>>> fetchMovies({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
+    requestedPages.add(page);
+    requestedSearches.add(search);
+    if (failMovies || (failNextMoviePage && page > 1)) {
+      failNextMoviePage = false;
+      return const Err('Каталог недоступен');
+    }
+    final filtered = [movie, ...additionalMovies].where((item) {
+      final query = search?.toLowerCase() ?? '';
+      return query.isEmpty ||
+          item.title.toLowerCase().contains(query) ||
+          item.genre.toLowerCase().contains(query);
+    });
+    return Ok(filtered.skip((page - 1) * limit).take(limit).toList());
   }
 
   @override
-  Future<Result<List<Screening>>> fetchScreenings(String movieId) async {
+  Future<Result<List<Screening>>> fetchScreenings(
+    String movieId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     lastMovieId = movieId;
     return Ok(movieId == screening.movieId ? [screening] : []);
   }
 
   @override
-  Future<Result<List<Reservation>>> fetchReservations(String userId) async {
+  Future<Result<List<Reservation>>> fetchReservations(
+    String userId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     lastUserId = userId;
     return Ok([
       if (userId == reservation.userId) reservation,

@@ -7,6 +7,8 @@ import 'reservation.dart';
 import 'screening.dart';
 
 class CinemaModel extends ChangeNotifier {
+  static const _moviesPageSize = 20;
+
   final CinemaRepository _repository;
 
   CinemaModel(this._repository);
@@ -20,12 +22,18 @@ class CinemaModel extends ChangeNotifier {
   String? _activeScreeningsMovieId;
 
   bool _isMoviesLoading = false;
+  bool _isLoadingMoreMovies = false;
+  bool _hasMoreMovies = false;
   bool _isReservationsLoading = false;
   bool _isReservationSaving = false;
   bool _hasLoadedReservations = false;
   int _reservationsVersion = 0;
+  int _moviesPage = 1;
+  int _moviesRequestId = 0;
+  String _movieSearch = '';
 
   String? _moviesError;
+  String? _moviesMoreError;
   String? _reservationsError;
   String? _reservationError;
 
@@ -54,6 +62,8 @@ class CinemaModel extends ChangeNotifier {
   }
 
   bool get isMoviesLoading => _isMoviesLoading;
+  bool get isLoadingMoreMovies => _isLoadingMoreMovies;
+  bool get hasMoreMovies => _hasMoreMovies;
   bool get isScreeningsLoading =>
       _activeScreeningsMovieId != null &&
       _loadingScreeningsMovieIds.contains(_activeScreeningsMovieId);
@@ -64,6 +74,8 @@ class CinemaModel extends ChangeNotifier {
   bool get isReservationSaving => _isReservationSaving;
 
   String? get moviesError => _moviesError;
+  String? get moviesMoreError => _moviesMoreError;
+  String get movieSearch => _movieSearch;
   String? get screeningsError => _activeScreeningsMovieId == null
       ? null
       : _screeningErrorsByMovieId[_activeScreeningsMovieId];
@@ -77,22 +89,71 @@ class CinemaModel extends ChangeNotifier {
   bool hasLoadedScreeningsFor(String movieId) =>
       _screeningsByMovieId.containsKey(movieId);
 
-  Future<void> loadMovies() async {
+  Future<void> loadMovies({String? search}) async {
     if (_disposed) return;
+    if (search != null) _movieSearch = search.trim();
+    final requestId = ++_moviesRequestId;
+    _moviesPage = 1;
+    _hasMoreMovies = false;
+    _isLoadingMoreMovies = false;
+    _moviesMoreError = null;
+    _movies = const [];
     _isMoviesLoading = true;
     _moviesError = null;
     notifyListeners();
 
-    final result = await _repository.fetchMovies();
-    if (_disposed) return;
+    final result = await _repository.fetchMovies(
+      page: 1,
+      limit: _moviesPageSize,
+      search: _movieSearch.isEmpty ? null : _movieSearch,
+    );
+    if (_disposed || requestId != _moviesRequestId) return;
     switch (result) {
       case Ok<List<Movie>>(value: final movies):
         _movies = List.unmodifiable(movies);
+        _hasMoreMovies = movies.length == _moviesPageSize;
       case Err<List<Movie>>(msg: final message):
         _moviesError = message;
     }
 
     _isMoviesLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadMoreMovies() async {
+    if (_disposed ||
+        _isMoviesLoading ||
+        _isLoadingMoreMovies ||
+        !_hasMoreMovies) {
+      return;
+    }
+
+    final requestId = _moviesRequestId;
+    final page = _moviesPage + 1;
+    _isLoadingMoreMovies = true;
+    _moviesMoreError = null;
+
+    final result = await _repository.fetchMovies(
+      page: page,
+      limit: _moviesPageSize,
+      search: _movieSearch.isEmpty ? null : _movieSearch,
+    );
+    if (_disposed || requestId != _moviesRequestId) return;
+
+    switch (result) {
+      case Ok<List<Movie>>(value: final movies):
+        final existingIds = _movies.map((movie) => movie.id).toSet();
+        _movies = List.unmodifiable([
+          ..._movies,
+          ...movies.where((movie) => existingIds.add(movie.id)),
+        ]);
+        _moviesPage = page;
+        _hasMoreMovies = movies.length == _moviesPageSize;
+      case Err<List<Movie>>(msg: final message):
+        _moviesMoreError = message;
+    }
+
+    _isLoadingMoreMovies = false;
     notifyListeners();
   }
 

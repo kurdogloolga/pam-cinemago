@@ -70,6 +70,41 @@ void main() {
 
       final movies = (await repo.fetchMovies() as Ok).value;
       expect(movies.single.title, 'Test film');
+
+      for (var index = 1; index <= 22; index++) {
+        final response = await http.post(
+          Uri.parse('$baseUrl/movies'),
+          headers: headers,
+          body: jsonEncode({
+            'title': 'PAGING_FIXTURE_$index',
+            'genre': 'Test',
+            'durationMin': 90,
+            'posterUrl': '',
+            'rating': 7,
+          }),
+        );
+        expect(response.statusCode, 201);
+      }
+      final firstPage = (await repo.fetchMovies(
+        page: 1,
+        limit: 20,
+        search: 'PAGING_FIXTURE',
+      ) as Ok).value;
+      final secondPage = (await repo.fetchMovies(
+        page: 2,
+        limit: 20,
+        search: 'PAGING_FIXTURE',
+      ) as Ok).value;
+      expect(firstPage, hasLength(20));
+      expect(secondPage, hasLength(2));
+      expect(
+        firstPage
+            .map((movie) => movie.id)
+            .toSet()
+            .intersection(secondPage.map((movie) => movie.id).toSet()),
+        isEmpty,
+      );
+
       final screenings = (await repo.fetchScreenings('$movieId') as Ok).value;
       expect(screenings.single.seatsTaken, isEmpty);
       final created = (await repo.createReservation(

@@ -48,8 +48,95 @@ void main() {
     await tester.tap(find.text('Повторить'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Интерстеллар'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(GridView),
+        matching: find.text('Интерстеллар'),
+      ),
+      findsOneWidget,
+    );
   });
+
+  testWidgets('movie search queries the repository and can be cleared', (
+    tester,
+  ) async {
+    final repository = MockCinemaRepository();
+    await tester.pumpWidget(
+      _providerApp(
+        const MaterialApp(home: MoviesScreen()),
+        repository: repository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Интерстеллар');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(repository.lastMovieSearch, 'Интерстеллар');
+    expect(repository.lastMoviePage, 1);
+    expect(
+      find.descendant(
+        of: find.byType(GridView),
+        matching: find.text('Интерстеллар'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Очистить поиск'));
+    await tester.pumpAndSettle();
+    expect(repository.lastMovieSearch, isNull);
+    expect(
+      find.descendant(
+        of: find.byType(GridView),
+        matching: find.text('Интерстеллар'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(GridView), matching: find.text('Начало')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'movie catalog loads the next page when scrolling to its footer',
+    (tester) async {
+      final repository = MockCinemaRepository()
+        ..movieSource = List.generate(
+          25,
+          (index) => Movie(
+            id: 'page-${index + 1}',
+            title: 'Фильм ${index + 1}',
+            genre: 'драма',
+            year: null,
+            director: null,
+            durationMin: 90,
+            posterUrl: '',
+            rating: 7,
+            description: null,
+          ),
+        );
+      await tester.pumpWidget(
+        _providerApp(
+          const MaterialApp(home: MoviesScreen()),
+          repository: repository,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Фильм 21'),
+        300,
+        scrollable: find.descendant(
+          of: find.byType(GridView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Фильм 21'), findsOneWidget);
+      expect(repository.lastMoviePage, 2);
+    },
+  );
 
   testWidgets('seat map shows 8 rows, 10 seats and all seat states', (
     tester,

@@ -46,13 +46,18 @@ void main() {
       expect(request.headers['authorization'], 'Bearer jwt');
       switch (request.url.path) {
         case '/movies':
+          expect(request.url.queryParameters, {'page': '1', 'limit': '20'});
           return http.Response(
             '{"items":[{"id":1,"title":"Film","genre":"Drama",'
             '"durationMin":120,"posterUrl":"","rating":8}]}',
             200,
           );
         case '/screenings':
-          expect(request.url.queryParameters, {'movieId': '1'});
+          expect(request.url.queryParameters, {
+            'movieId': '1',
+            'page': '1',
+            'limit': '20',
+          });
           return http.Response(
             '{"items":[{"id":2,"movieId":1,"hall":"Hall",'
             '"dateTime":"2026-10-10T12:30:00Z","price":100,'
@@ -60,7 +65,7 @@ void main() {
             200,
           );
         case '/reservations':
-          expect(request.url.query, isEmpty);
+          expect(request.url.queryParameters, {'page': '1', 'limit': '20'});
           return http.Response(
             '{"items":[$reservationJson]}',
             200,
@@ -104,6 +109,69 @@ void main() {
     ]);
     client.close();
   });
+
+  test(
+    'sends pagination and encoded search parameters for every list route',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.queryParameters, {
+          'page': '3',
+          'limit': '7',
+          'search': 'Драма & кино',
+          if (request.url.path == '/screenings') 'movieId': '12',
+        });
+        return http.Response('{"items":[]}', 200);
+      });
+      final repo = HttpCinemaRepository(
+        'http://example.test',
+        tokens,
+        client: client,
+      );
+
+      expect(
+        await repo.fetchMovies(page: 3, limit: 7, search: 'Драма & кино'),
+        isA<Ok>(),
+      );
+      expect(
+        await repo.fetchScreenings(
+          '12',
+          page: 3,
+          limit: 7,
+          search: 'Драма & кино',
+        ),
+        isA<Ok>(),
+      );
+      expect(
+        await repo.fetchReservations(
+          'ignored',
+          page: 3,
+          limit: 7,
+          search: 'Драма & кино',
+        ),
+        isA<Ok>(),
+      );
+      client.close();
+    },
+  );
+
+  test(
+    'preserves an API base path when adding list query parameters',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/api/v1/movies');
+        expect(request.url.queryParameters, {'page': '2', 'limit': '20'});
+        return http.Response('{"items":[]}', 200);
+      });
+      final repo = HttpCinemaRepository(
+        'http://example.test/api/v1',
+        tokens,
+        client: client,
+      );
+
+      expect(await repo.fetchMovies(page: 2), isA<Ok>());
+      client.close();
+    },
+  );
 
   test(
     'creates, updates and deletes reservations using correct payloads',

@@ -56,6 +56,10 @@ This test creates a user, a movie and a screening in that test database.
 The server's movie schema has no year, director or description; the interface
 indicates that these details are unavailable when they are not supplied.
 
+The movie catalog requests 20 records at a time. Scroll to the bottom to load
+the next page; the search field and genre chips send their query to the server,
+and clearing the search returns to the first unfiltered page.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

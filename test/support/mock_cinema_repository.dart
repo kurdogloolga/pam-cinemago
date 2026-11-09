@@ -19,39 +19,77 @@ class MockCinemaRepository implements CinemaRepository {
   int _nextReservationNumber = 1000;
 
   bool simulateError = false;
+  String? lastMovieSearch;
+  int? lastMoviePage;
+  List<Movie>? movieSource;
 
   @override
-  Future<Result<List<Movie>>> fetchMovies() async {
+  Future<Result<List<Movie>>> fetchMovies({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
+    lastMovieSearch = search;
+    lastMoviePage = page;
     if (await _shouldFail()) {
       return const Err(_networkError);
     }
-    return Ok(List.unmodifiable(mockMovies));
+    final query = search?.trim().toLowerCase() ?? '';
+    final filtered = (movieSource ?? mockMovies).where(
+      (movie) =>
+          query.isEmpty ||
+          movie.title.toLowerCase().contains(query) ||
+          movie.genre.toLowerCase().contains(query),
+    );
+    return Ok(List.unmodifiable(filtered.skip((page - 1) * limit).take(limit)));
   }
 
   @override
-  Future<Result<List<Screening>>> fetchScreenings(String movieId) async {
+  Future<Result<List<Screening>>> fetchScreenings(
+    String movieId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     if (await _shouldFail()) {
       return const Err(_networkError);
     }
+    final query = search?.trim().toLowerCase() ?? '';
+    final filtered = _screenings.where(
+      (screening) =>
+          screening.movieId == movieId &&
+          (query.isEmpty || screening.hall.toLowerCase().contains(query)),
+    );
     return Ok(
       List.unmodifiable(
-        _screenings
-            .where((screening) => screening.movieId == movieId)
-            .map(_copyScreening),
+        filtered.skip((page - 1) * limit).take(limit).map(_copyScreening),
       ),
     );
   }
 
   @override
-  Future<Result<List<Reservation>>> fetchReservations(String userId) async {
+  Future<Result<List<Reservation>>> fetchReservations(
+    String userId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     if (await _shouldFail()) {
       return const Err(_networkError);
     }
+    final query = search?.trim().toLowerCase() ?? '';
+    final filtered = _reservations.where(
+      (reservation) =>
+          reservation.userId == userId &&
+          (query.isEmpty ||
+              reservation.status.toLowerCase().contains(query) ||
+              reservation.seats.any(
+                (seat) => seat.toLowerCase().contains(query),
+              )),
+    );
     return Ok(
       List.unmodifiable(
-        _reservations
-            .where((reservation) => reservation.userId == userId)
-            .map(_copyReservation),
+        filtered.skip((page - 1) * limit).take(limit).map(_copyReservation),
       ),
     );
   }

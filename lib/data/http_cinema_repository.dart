@@ -29,17 +29,46 @@ class HttpCinemaRepository implements CinemaRepository {
   final Duration timeout;
 
   @override
-  Future<Result<List<Movie>>> fetchMovies() => _list('/movies', Movie.fromJson);
-
-  @override
-  Future<Result<List<Screening>>> fetchScreenings(String movieId) => _list(
-    '/screenings?${Uri(queryParameters: {'movieId': movieId}).query}',
-    Screening.fromJson,
+  Future<Result<List<Movie>>> fetchMovies({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) => _list(
+    '/movies',
+    Movie.fromJson,
+    page: page,
+    limit: limit,
+    search: search,
   );
 
   @override
-  Future<Result<List<Reservation>>> fetchReservations(String userId) =>
-      _list('/reservations', Reservation.fromJson);
+  Future<Result<List<Screening>>> fetchScreenings(
+    String movieId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) => _list(
+    '/screenings',
+    Screening.fromJson,
+    page: page,
+    limit: limit,
+    search: search,
+    queryParameters: {'movieId': movieId},
+  );
+
+  @override
+  Future<Result<List<Reservation>>> fetchReservations(
+    String userId, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) => _list(
+    '/reservations',
+    Reservation.fromJson,
+    page: page,
+    limit: limit,
+    search: search,
+  );
 
   @override
   Future<Result<Reservation>> fetchReservationById(String id) => _request(
@@ -73,15 +102,28 @@ class HttpCinemaRepository implements CinemaRepository {
 
   Future<Result<List<T>>> _list<T>(
     String path,
-    T Function(Map<String, dynamic>) parse,
-  ) => _request('GET', path, 200, (response) {
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return List<T>.unmodifiable(
-      (data['items'] as List).map(
-        (item) => parse(item as Map<String, dynamic>),
-      ),
-    );
-  });
+    T Function(Map<String, dynamic>) parse, {
+    int page = 1,
+    int limit = 20,
+    String? search,
+    Map<String, String>? queryParameters,
+  }) {
+    final parameters = <String, String>{
+      'page': '$page',
+      'limit': '$limit',
+      if (search != null && search.isNotEmpty) 'search': search,
+      ...?queryParameters,
+    };
+    final query = Uri(queryParameters: parameters).query;
+    return _request('GET', '$path?$query', 200, (response) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return List<T>.unmodifiable(
+        (data['items'] as List).map(
+          (item) => parse(item as Map<String, dynamic>),
+        ),
+      );
+    });
+  }
 
   Future<Result<Reservation>> _saveReservation(
     String method,
