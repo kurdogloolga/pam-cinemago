@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/auth_api.dart';
+import '../data/result.dart';
+import '../models/user_profile.dart';
+import '../widgets/error_view.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,6 +16,35 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  UserProfile? _profile;
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _profile = null;
+    });
+    final result = await context.read<AuthApi>().fetchProfile();
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      switch (result) {
+        case Ok<UserProfile>(:final value):
+          _profile = value;
+        case Err<UserProfile>(:final msg):
+          _error = msg;
+      }
+    });
+  }
+
   Future<void> _logout(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -74,52 +106,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
-          Center(
-            child: Column(
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            ErrorView(message: _error!, onRetry: _loadProfile)
+          else ...[
+            Center(
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 42,
+                    backgroundColor: scheme.primaryContainer,
+                    child: Icon(
+                      Icons.person_outline_rounded,
+                      size: 44,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    _profile!.name,
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Участник CinemaGo',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+            _ProfileSection(
+              title: 'Личные данные',
               children: [
-                CircleAvatar(
-                  radius: 42,
-                  backgroundColor: scheme.primaryContainer,
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    size: 44,
-                    color: scheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Анастасия Иванова',
-                  textAlign: TextAlign.center,
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Участник CinemaGo',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                _ProfileInfoTile(
+                  icon: Icons.email_outlined,
+                  title: 'Электронная почта',
+                  subtitle: _profile!.email,
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 28),
-          _ProfileSection(
-            title: 'Личные данные',
-            children: const [
-              _ProfileInfoTile(
-                icon: Icons.email_outlined,
-                title: 'Электронная почта',
-                subtitle: 'anastasia.ivanova@example.com',
-              ),
-              _ProfileInfoTile(
-                icon: Icons.phone_outlined,
-                title: 'Телефон',
-                subtitle: '+373 69 123 456',
-              ),
-            ],
-          ),
+          ],
           const SizedBox(height: 20),
           _ProfileSection(
             title: 'Настройки',

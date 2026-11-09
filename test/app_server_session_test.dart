@@ -29,6 +29,18 @@ void main() {
       }
       protectedRequests++;
       final token = request.headers['authorization'];
+      if (request.url.path == '/me') {
+        final email = token!.substring('Bearer '.length);
+        return http.Response(
+          jsonEncode({
+            'id': email.startsWith('a@') ? 1 : 2,
+            'name': email.startsWith('a@') ? 'Первый' : 'Второй',
+            'email': email,
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (request.url.path == '/movies') {
         return http.Response(
           '{"items":[{"id":1,"title":"Film","genre":"Drama",'
@@ -88,6 +100,8 @@ void main() {
     );
     await tester.tap(find.text('Профиль').last);
     await tester.pumpAndSettle();
+    expect(find.text('Первый'), findsOneWidget);
+    expect(find.text('a@example.test'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Выйти из аккаунта'),
       250,
@@ -106,6 +120,11 @@ void main() {
           .isLabelVisible,
       isFalse,
     );
+    await tester.tap(find.text('Профиль').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Второй'), findsOneWidget);
+    expect(find.text('b@example.test'), findsOneWidget);
+    expect(find.text('Первый'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     router.dispose();
     client.close();

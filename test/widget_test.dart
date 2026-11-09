@@ -327,15 +327,18 @@ void main() {
   testWidgets('profile shows account details and static settings', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
+    await tester.pumpWidget(
+      _providerApp(const MaterialApp(home: ProfileScreen())),
+    );
+    await tester.pumpAndSettle();
 
     expect(
       find.descendant(of: find.byType(AppBar), matching: find.text('Профиль')),
       findsOneWidget,
     );
-    expect(find.text('Анастасия Иванова'), findsOneWidget);
-    expect(find.text('anastasia.ivanova@example.com'), findsOneWidget);
-    expect(find.text('+373 69 123 456'), findsOneWidget);
+    expect(find.text('Тестовый пользователь'), findsOneWidget);
+    expect(find.text('user@example.test'), findsOneWidget);
+    expect(find.text('Телефон'), findsNothing);
     expect(find.text('Язык приложения'), findsOneWidget);
     expect(find.text('Русский'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -705,7 +708,7 @@ void main() {
 
     await tester.tap(find.text('Профиль').last);
     await tester.pumpAndSettle();
-    expect(find.text('Анастасия Иванова'), findsOneWidget);
+    expect(find.text('Тестовый пользователь'), findsOneWidget);
 
     await tester.tap(find.text('Афиша').last);
     await tester.pumpAndSettle();
@@ -818,9 +821,19 @@ Widget _providerApp(
             AuthApi(
               'http://test',
               TokenStore(),
-              client: MockClient(
-                (_) async => http.Response('{"token":"test-token"}', 200),
-              ),
+              client: MockClient((request) async {
+                if (request.url.path == '/me') {
+                  return http.Response(
+                    '{"id":1,"name":"Тестовый пользователь",'
+                    '"email":"user@example.test"}',
+                    200,
+                    headers: {
+                      'content-type': 'application/json; charset=utf-8',
+                    },
+                  );
+                }
+                return http.Response('{"token":"test-token"}', 200);
+              }),
             ),
       ),
       Provider<CinemaRepository>.value(value: cinemaRepository),
