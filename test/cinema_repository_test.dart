@@ -1,4 +1,5 @@
-import 'package:cinemago/data/mock_cinema_repository.dart';
+import 'support/mock_cinema_repository.dart';
+
 import 'package:cinemago/data/result.dart';
 import 'package:cinemago/models/movie.dart';
 import 'package:cinemago/models/reservation.dart';

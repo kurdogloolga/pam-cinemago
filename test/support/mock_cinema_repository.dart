@@ -1,9 +1,10 @@
-import '../models/movie.dart';
-import '../models/reservation.dart';
-import '../models/screening.dart';
-import 'cinema_repository.dart';
+import 'package:cinemago/models/movie.dart';
+import 'package:cinemago/models/reservation.dart';
+import 'package:cinemago/models/screening.dart';
+import 'package:cinemago/data/cinema_repository.dart';
+import 'package:cinemago/data/result.dart';
+
 import 'mock_data.dart' show mockMovies, mockReservations, mockScreenings;
-import 'result.dart';
 
 class MockCinemaRepository implements CinemaRepository {
   static const _latency = Duration(milliseconds: 800);

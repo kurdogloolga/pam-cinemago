@@ -14,7 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FailingClearTokenStore extends TokenStore {
   @override
-  Future<void> clear() async => throw PlatformException(code: 'storage_failed');
+  Future<bool> clearIfVersion(int version) async =>
+      throw PlatformException(code: 'storage_failed');
 }
 
 void main() {

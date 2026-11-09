@@ -13,6 +13,7 @@ String apiMessage(http.Response response) {
       'UNAUTHORIZED' => 'Неверный email или пароль',
       'EMAIL_TAKEN' => 'Аккаунт с этим email уже существует',
       'NOT_FOUND' => 'Запись не существует',
+      'SEAT_UNAVAILABLE' => 'Одно или несколько мест уже заняты',
       _ => 'Ошибка сервера ($code)',
     };
   } on FormatException {

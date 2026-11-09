@@ -2,9 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cinemago/data/auth_api.dart';
-import 'package:cinemago/data/mock_data.dart';
 import 'package:cinemago/data/cinema_repository.dart';
-import 'package:cinemago/data/mock_cinema_repository.dart';
 import 'package:cinemago/data/token_store.dart';
 import 'package:cinemago/models/cinema_model.dart';
 import 'package:cinemago/models/seat_selection_model.dart';
@@ -21,6 +19,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/mock_cinema_repository.dart';
+import 'support/mock_data.dart';
 
 void main() {
   setUp(() {
@@ -184,57 +185,6 @@ void main() {
       appRouter.routeInformationProvider.value.uri.path,
       contains('confirmation'),
     );
-  });
-
-  testWidgets('profile network switch drives error and retry states', (
-    tester,
-  ) async {
-    final repository = MockCinemaRepository();
-    await tester.pumpWidget(_routerApp(repository: repository));
-    appRouter.go('/profile');
-    await tester.pumpAndSettle();
-
-    expect(appRouter.routeInformationProvider.value.uri.path, '/profile');
-    expect(find.byType(ProfileScreen), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Симулировать сбой сети'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    final networkSwitch = find.byType(SwitchListTile);
-    await tester.tap(networkSwitch);
-    await tester.pump();
-    expect(repository.simulateError, isTrue);
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
-
-    appRouter.go('/movies');
-    await tester.pumpAndSettle();
-    expect(find.text('Сервер не отвечает — повторите попытку'), findsOneWidget);
-    await tester.tap(find.text('Повторить'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
-    expect(find.text('Сервер не отвечает — повторите попытку'), findsOneWidget);
-
-    appRouter.go('/profile');
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Симулировать сбой сети'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(networkSwitch);
-    await tester.pumpAndSettle();
-    expect(repository.simulateError, isFalse);
-
-    appRouter.go('/movies');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Повторить'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
-    expect(find.text('Интерстеллар'), findsOneWidget);
   });
 
   testWidgets('my tickets shows reservation details and statuses', (
@@ -786,7 +736,6 @@ Widget _providerApp(
               ),
             ),
       ),
-      Provider<MockCinemaRepository>.value(value: cinemaRepository),
       Provider<CinemaRepository>.value(value: cinemaRepository),
       ChangeNotifierProvider(
         create: (context) =>

@@ -4,11 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'data/auth_api.dart';
-import 'data/cinema_repository.dart';
-import 'data/mock_cinema_repository.dart';
+import 'data/http_cinema_repository.dart';
 import 'data/token_store.dart';
-import 'models/cinema_model.dart';
-import 'models/seat_selection_model.dart';
 import 'router.dart';
 
 Future<void> main() async {
@@ -21,12 +18,14 @@ Future<void> main() async {
       : !kIsWeb && defaultTargetPlatform == TargetPlatform.android
       ? 'http://10.0.2.2:8080'
       : 'http://localhost:8080';
-  runApp(
-    MyApp(
-      auth: AuthApi(apiBase, tokens),
-      router: createAppRouter(loggedIn: loggedIn),
-    ),
+  late final GoRouter router;
+  final repository = HttpCinemaRepository(
+    apiBase,
+    tokens,
+    onUnauthorized: () => router.go('/login'),
   );
+  router = createAppRouter(loggedIn: loggedIn, repository: repository);
+  runApp(MyApp(auth: AuthApi(apiBase, tokens), router: router));
 }
 
 class MyApp extends StatelessWidget {
@@ -37,20 +36,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<AuthApi>.value(value: auth),
-        Provider<MockCinemaRepository>(create: (_) => MockCinemaRepository()),
-        Provider<CinemaRepository>(
-          create: (context) => context.read<MockCinemaRepository>(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => CinemaModel(context.read<CinemaRepository>())
-            ..loadMovies()
-            ..loadReservations('u1'),
-        ),
-        ChangeNotifierProvider(create: (_) => SeatSelectionModel()),
-      ],
+    return Provider<AuthApi>.value(
+      value: auth,
       child: MaterialApp.router(
         title: 'CinemaGo',
         theme: ThemeData(

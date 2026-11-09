@@ -20,6 +20,7 @@ void main() {
       'UNAUTHORIZED': 'Неверный email или пароль',
       'EMAIL_TAKEN': 'Аккаунт с этим email уже существует',
       'NOT_FOUND': 'Запись не существует',
+      'SEAT_UNAVAILABLE': 'Одно или несколько мест уже заняты',
     };
 
     for (final entry in cases.entries) {
@@ -29,8 +30,8 @@ void main() {
 
   test('reports an unknown code', () {
     expect(
-      apiMessage(errorResponse('SEAT_UNAVAILABLE', 409)),
-      'Ошибка сервера (SEAT_UNAVAILABLE)',
+      apiMessage(errorResponse('UNKNOWN', 409)),
+      'Ошибка сервера (UNKNOWN)',
     );
   });
 

@@ -1,10 +1,10 @@
-import '../models/movie.dart';
-import '../models/reservation.dart';
-import '../models/screening.dart';
+import 'package:cinemago/models/movie.dart';
+import 'package:cinemago/models/reservation.dart';
+import 'package:cinemago/models/screening.dart';
 
-export '../models/movie.dart';
-export '../models/reservation.dart';
-export '../models/screening.dart';
+export 'package:cinemago/models/movie.dart';
+export 'package:cinemago/models/reservation.dart';
+export 'package:cinemago/models/screening.dart';
 
 const mockMovies = [
   Movie(

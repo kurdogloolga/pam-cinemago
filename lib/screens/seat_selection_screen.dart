@@ -39,8 +39,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _loadScreening() {
     final model = context.read<CinemaModel>();
-    if (!model.hasLoadedScreeningsFor(widget.movieId) &&
-        !model.isScreeningsLoadingFor(widget.movieId)) {
+    if (!model.isScreeningsLoadingFor(widget.movieId)) {
       model.loadScreenings(widget.movieId);
     }
   }
@@ -82,7 +81,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     }
 
     final selectionModel = context.watch<SeatSelectionModel>();
-    final selectedSeats = selectionModel.selectedSeatsFor(screening.id).toSet();
+    final selectedSeats = selectionModel
+        .selectedSeatsFor(screening.id)
+        .toSet()
+        .difference(screening.seatsTaken.toSet());
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Form(
@@ -90,13 +92,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       child: FormField<Set<String>>(
         initialValue: selectedSeats,
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        validator: (seats) => seats == null || seats.isEmpty
-            ? 'Выберите минимум одно место'
-            : null,
+        validator: (_) =>
+            selectedSeats.isEmpty ? 'Выберите минимум одно место' : null,
         builder: (field) {
-          final selectedSeats = selectionModel
-              .selectedSeatsFor(screening.id)
-              .toSet();
           final total = screening.price * selectedSeats.length;
 
           return Scaffold(
@@ -227,9 +225,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       return;
                     }
 
-                    final selectedSeats = context
-                        .read<SeatSelectionModel>()
-                        .selectedSeatsFor(screening.id);
                     final query = selectedSeats
                         .map(
                           (seat) => 'seats=${Uri.encodeQueryComponent(seat)}',

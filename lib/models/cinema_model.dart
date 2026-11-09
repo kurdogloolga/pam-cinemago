@@ -11,6 +11,7 @@ class CinemaModel extends ChangeNotifier {
 
   CinemaModel(this._repository);
 
+  bool _disposed = false;
   List<Movie> _movies = const [];
   final Map<String, List<Screening>> _screeningsByMovieId = {};
   List<Reservation> _reservations = const [];
@@ -22,6 +23,7 @@ class CinemaModel extends ChangeNotifier {
   bool _isReservationsLoading = false;
   bool _isReservationSaving = false;
   bool _hasLoadedReservations = false;
+  int _reservationsVersion = 0;
 
   String? _moviesError;
   String? _reservationsError;
@@ -76,11 +78,13 @@ class CinemaModel extends ChangeNotifier {
       _screeningsByMovieId.containsKey(movieId);
 
   Future<void> loadMovies() async {
+    if (_disposed) return;
     _isMoviesLoading = true;
     _moviesError = null;
     notifyListeners();
 
     final result = await _repository.fetchMovies();
+    if (_disposed) return;
     switch (result) {
       case Ok<List<Movie>>(value: final movies):
         _movies = List.unmodifiable(movies);
@@ -93,12 +97,14 @@ class CinemaModel extends ChangeNotifier {
   }
 
   Future<void> loadScreenings(String movieId) async {
+    if (_disposed) return;
     _activeScreeningsMovieId = movieId;
     _screeningErrorsByMovieId.remove(movieId);
     _loadingScreeningsMovieIds.add(movieId);
     notifyListeners();
 
     final result = await _repository.fetchScreenings(movieId);
+    if (_disposed) return;
     switch (result) {
       case Ok<List<Screening>>(value: final screenings):
         _screeningsByMovieId[movieId] = List.unmodifiable(screenings);
@@ -112,6 +118,7 @@ class CinemaModel extends ChangeNotifier {
   }
 
   Future<void> loadAllScreenings() async {
+    if (_disposed) return;
     await Future.wait(
       _movies
           .where(
@@ -124,11 +131,18 @@ class CinemaModel extends ChangeNotifier {
   }
 
   Future<void> loadReservations(String userId) async {
+    if (_disposed) return;
+    final version = _reservationsVersion;
     _isReservationsLoading = true;
     _reservationsError = null;
     notifyListeners();
 
     final result = await _repository.fetchReservations(userId);
+    if (_disposed) return;
+    if (version != _reservationsVersion) {
+      await loadReservations(userId);
+      return;
+    }
     switch (result) {
       case Ok<List<Reservation>>(value: final reservations):
         _reservations = List.unmodifiable(reservations);
@@ -142,26 +156,34 @@ class CinemaModel extends ChangeNotifier {
   }
 
   Future<String?> createReservation(Reservation reservation) async {
+    if (_disposed) return 'Сессия завершена';
     _isReservationSaving = true;
     _reservationError = null;
     notifyListeners();
 
     final result = await _repository.createReservation(reservation);
+    if (_disposed) return 'Сессия завершена';
     switch (result) {
       case Ok<Reservation>(value: final created):
+        _reservationsVersion++;
         _reservations = List.unmodifiable([..._reservations, created]);
         _isReservationSaving = false;
         notifyListeners();
+        _refreshScreening(created.screeningId);
         return null;
       case Err<Reservation>(msg: final message):
         _reservationError = message;
         _isReservationSaving = false;
         notifyListeners();
+        if (message == 'Одно или несколько мест уже заняты') {
+          _refreshScreening(reservation.screeningId);
+        }
         return message;
     }
   }
 
   Future<String?> cancelReservation(String reservationId) async {
+    if (_disposed) return 'Сессия завершена';
     _isReservationSaving = true;
     _reservationError = null;
     notifyListeners();
@@ -179,8 +201,10 @@ class CinemaModel extends ChangeNotifier {
     final result = await _repository.updateReservation(
       existing.first.copyWith(status: 'Отменено'),
     );
+    if (_disposed) return 'Сессия завершена';
     switch (result) {
       case Ok<Reservation>(value: final updated):
+        _reservationsVersion++;
         _reservations = List.unmodifiable(
           _reservations
               .map(
@@ -191,6 +215,7 @@ class CinemaModel extends ChangeNotifier {
         );
         _isReservationSaving = false;
         notifyListeners();
+        _refreshScreening(updated.screeningId);
         return null;
       case Err<Reservation>(msg: final message):
         _reservationError = message;
@@ -198,5 +223,18 @@ class CinemaModel extends ChangeNotifier {
         notifyListeners();
         return message;
     }
+  }
+
+  void _refreshScreening(String screeningId) {
+    final screening = screeningById(screeningId);
+    if (screening != null) {
+      loadScreenings(screening.movieId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

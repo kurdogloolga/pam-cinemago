@@ -1,5 +1,9 @@
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'data/cinema_repository.dart';
+import 'models/cinema_model.dart';
+import 'models/seat_selection_model.dart';
 import 'screens/booking_confirmation_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/movie_detail_screen.dart';
@@ -12,13 +16,29 @@ import 'widgets/app_shell.dart';
 
 final appRouter = createAppRouter();
 
-GoRouter createAppRouter({bool loggedIn = false}) => GoRouter(
+GoRouter createAppRouter({
+  bool loggedIn = false,
+  CinemaRepository? repository,
+}) => GoRouter(
   initialLocation: loggedIn ? '/movies' : '/login',
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          AppShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) {
+        final shell = AppShell(navigationShell: navigationShell);
+        if (repository == null) return shell;
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (_) => CinemaModel(repository)
+                ..loadMovies()
+                ..loadReservations(''),
+            ),
+            ChangeNotifierProvider(create: (_) => SeatSelectionModel()),
+          ],
+          child: shell,
+        );
+      },
       branches: [
         StatefulShellBranch(
           routes: [

@@ -112,6 +112,7 @@ class HttpCinemaRepository implements CinemaRepository {
   }) async {
     final requestClient = client ?? http.Client();
     try {
+      final tokenVersion = _tokens.version;
       final token = await _tokens.read();
       final request = http.Request(method, Uri.parse('$_baseUrl$path'));
       request.headers.addAll({
@@ -124,8 +125,10 @@ class HttpCinemaRepository implements CinemaRepository {
           .then(http.Response.fromStream)
           .timeout(timeout);
       if (response.statusCode == 401) {
-        await _tokens.clear();
-        onUnauthorized?.call();
+        final cleared = await _tokens.clearIfVersion(tokenVersion);
+        if (cleared && _tokens.version == tokenVersion + 1) {
+          onUnauthorized?.call();
+        }
         return const Err('Сессия истекла — войдите снова');
       }
       if (response.statusCode != successStatus) {
