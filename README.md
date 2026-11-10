@@ -23,7 +23,7 @@ Invoke-RestMethod -Method Post -Uri "$base/screenings" -Headers $headers -Conten
 
 Replace the example credentials and screening date. These commands add real
 records to the server database; use a test account and database when testing.
-The profile loads the current account's name and email from `GET /me`.
+The profile's personal details are still static placeholders.
 
 The default server address is `http://10.0.2.2:8080` on the Android emulator
 and `http://localhost:8080` on desktop or web. For a physical device, pass the

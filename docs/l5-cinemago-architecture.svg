@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title description">
+  <title id="title">Архитектура CinemaGo на лабораторной работе 5</title>
+  <desc id="description">Экраны, модели, интерфейс CinemaRepository, HttpCinemaRepository и сервер; токен JWT и путь ответа 401.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#43556f"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c0392b"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #17243b; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 17px; fill: #52627a; }
+      .heading { font-size: 20px; font-weight: 700; }
+      .body { font-size: 16px; }
+      .small { font-size: 14px; fill: #52627a; }
+      .label { font-size: 15px; font-weight: 700; fill: #34445d; }
+      .red { font-size: 15px; font-weight: 700; fill: #c0392b; }
+      .node { stroke-width: 2; rx: 18; }
+      .line { fill: none; stroke: #43556f; stroke-width: 2.5; marker-end: url(#arrow); }
+      .err { fill: none; stroke: #c0392b; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#arrowRed); }
+    </style>
+  </defs>
+
+  <rect width="1440" height="900" fill="#f5f7fb"/>
+  <text x="64" y="62" class="title">CinemaGo · архитектура L5</text>
+  <text x="64" y="94" class="subtitle">Mock заменён реальным HTTP-репозиторием; токен JWT и обработка ответа 401 отмечены на схеме</text>
+
+  <!-- Ряд 1: экраны, модели, интерфейс -->
+  <rect x="64" y="130" width="280" height="150" class="node" fill="#eaf2ff" stroke="#7ea6e8"/>
+  <text x="88" y="168" class="heading">Экраны</text>
+  <text x="88" y="200" class="body">Афиша · фильм · сеансы</text>
+  <text x="88" y="226" class="body">Места · билеты · профиль</text>
+  <text x="88" y="258" class="small">watch / read</text>
+
+  <rect x="424" y="130" width="280" height="150" class="node" fill="#e9f8f2" stroke="#69b99a"/>
+  <text x="448" y="168" class="heading">Модели</text>
+  <text x="448" y="200" class="body">CinemaModel</text>
+  <text x="448" y="226" class="body">SeatSelectionModel</text>
+  <text x="448" y="258" class="small">ChangeNotifier</text>
+
+  <rect x="784" y="130" width="280" height="150" class="node" fill="#f0ebff" stroke="#9e85de"/>
+  <text x="808" y="168" class="heading">Интерфейс</text>
+  <text x="808" y="200" class="body">CinemaRepository</text>
+  <text x="808" y="226" class="body">Future&lt;Result&lt;T&gt;&gt;</text>
+  <text x="808" y="258" class="small">контракт не изменился</text>
+
+  <path d="M344 205 H424" class="line"/>
+  <path d="M704 205 H784" class="line"/>
+
+  <!-- Ряд 2: HTTP-репозиторий и сервер -->
+  <rect x="784" y="380" width="280" height="150" class="node" fill="#fff0eb" stroke="#e59a7c"/>
+  <text x="808" y="418" class="heading">HttpCinemaRepository</text>
+  <text x="808" y="450" class="body">GET / POST / PUT / DELETE</text>
+  <text x="808" y="476" class="body">Bearer-токен в заголовке</text>
+  <text x="808" y="508" class="small">implements CinemaRepository</text>
+  <path d="M924 280 V380" class="line"/>
+
+  <rect x="1144" y="380" width="232" height="150" class="node" fill="#fff5df" stroke="#e5b75f"/>
+  <text x="1168" y="418" class="heading">Сервер .NET</text>
+  <text x="1168" y="450" class="body">/movies /screenings</text>
+  <text x="1168" y="476" class="body">/reservations /files</text>
+  <text x="1168" y="508" class="small">JWT-проверка, SQLite</text>
+  <path d="M1064 430 H1144" class="line"/>
+  <text x="1104" y="420" text-anchor="middle" class="label">HTTP</text>
+
+  <!-- Токен -->
+  <rect x="424" y="380" width="280" height="150" class="node" fill="#e6f4f1" stroke="#69b99a"/>
+  <text x="448" y="418" class="heading">TokenStore</text>
+  <text x="448" y="450" class="body">JWT в SharedPreferences</text>
+  <text x="448" y="476" class="body">Сохраняют AuthApi (login)</text>
+  <text x="448" y="508" class="small">читает репозиторий и FileApi</text>
+  <path d="M784 455 H704" class="line"/>
+  <text x="744" y="445" text-anchor="middle" class="label">token</text>
+
+  <rect x="64" y="380" width="280" height="150" class="node" fill="#fffaf0" stroke="#e5b75f"/>
+  <text x="88" y="418" class="heading">Вход / logout</text>
+  <text x="88" y="450" class="body">AuthApi: /auth/login,</text>
+  <text x="88" y="476" class="body">/auth/register</text>
+  <text x="88" y="508" class="small">записывает токен при входе</text>
+  <path d="M344 455 H424" class="line"/>
+
+  <!-- Путь 401 -->
+  <path d="M1260 530 V610 H924 V530" class="err" style="marker-end:none"/>
+  <text x="1092" y="598" text-anchor="middle" class="red">ответ 401</text>
+
+  <rect x="424" y="650" width="640" height="104" class="node" fill="#fdecea" stroke="#c0392b"/>
+  <text x="448" y="686" class="heading">Путь 401 (токен истёк)</text>
+  <text x="448" y="716" class="body">репозиторий очищает токен → onUnauthorized → router.go('/login')</text>
+  <text x="448" y="742" class="small">Поздний 401 не удаляет более новый токен (проверка версии)</text>
+  <path d="M924 610 V650" class="err"/>
+  <path d="M424 702 H204 V530" class="err"/>
+  <text x="214" y="640" class="red">на экран входа</text>
+
+  <rect x="64" y="800" width="1312" height="64" rx="18" fill="#e6f4f1" stroke="#69b99a" stroke-width="2"/>
+  <text x="90" y="840" class="body">Не пришлось менять экраны и CinemaModel, потому что они зависят только от интерфейса CinemaRepository, а не от его реализации.</text>
+</svg>

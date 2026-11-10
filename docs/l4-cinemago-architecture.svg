@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1060" viewBox="0 0 1440 1060" role="img" aria-labelledby="title description">
+  <title id="title">Архитектура CinemaGo на лабораторной работе 4</title>
+  <desc id="description">Авторская схема экранов, моделей, Repository, mock-реализации, источника данных, корня композиции и изменений на лабораторной работе 5.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#43556f"/>
+    </marker>
+    <marker id="arrowStart" markerWidth="10" markerHeight="10" refX="2" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M10,0 L0,5 L10,10 z" fill="#43556f"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #17243b; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 17px; fill: #52627a; }
+      .heading { font-size: 21px; font-weight: 700; }
+      .body { font-size: 16px; }
+      .small { font-size: 14px; fill: #52627a; }
+      .label { font-size: 15px; font-weight: 700; fill: #34445d; }
+      .node { stroke-width: 2; rx: 18; }
+      .line { fill: none; stroke: #43556f; stroke-width: 2.5; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 8 7; }
+    </style>
+  </defs>
+
+  <rect width="1440" height="1060" fill="#f5f7fb"/>
+  <text x="64" y="62" class="title">CinemaGo · архитектура L4</text>
+  <text x="64" y="94" class="subtitle">Данные идут через модель и контракт Repository; экран не зависит от того, где хранится каталог</text>
+
+  <rect x="64" y="135" width="382" height="224" class="node" fill="#eaf2ff" stroke="#7ea6e8"/>
+  <text x="90" y="174" class="heading">Экраны</text>
+  <text x="90" y="209" class="body">Афиша · карточка фильма</text>
+  <text x="90" y="237" class="body">Выбор сеанса и мест</text>
+  <text x="90" y="265" class="body">Подтверждение · мои билеты</text>
+  <text x="90" y="314" class="small">Показывают загрузку, данные или ошибку</text>
+  <text x="90" y="337" class="small">и дают повторить запрос</text>
+
+  <rect x="527" y="135" width="382" height="224" class="node" fill="#e9f8f2" stroke="#69b99a"/>
+  <text x="553" y="174" class="heading">Модели ChangeNotifier</text>
+  <text x="553" y="211" class="body">CinemaModel</text>
+  <text x="553" y="239" class="body">Фильмы · сеансы · бронирования</text>
+  <text x="553" y="276" class="body">SeatSelectionModel</text>
+  <text x="553" y="323" class="small">Состояние и логика; коллекции доступны</text>
+  <text x="553" y="345" class="small">только для чтения</text>
+
+  <path d="M446 208 H527" class="line" marker-start="url(#arrowStart)"/>
+  <rect x="449" y="172" width="75" height="28" rx="8" fill="#f5f7fb"/>
+  <text x="486" y="192" text-anchor="middle" class="label">watch</text>
+  <rect x="449" y="224" width="75" height="28" rx="8" fill="#f5f7fb"/>
+  <text x="486" y="244" text-anchor="middle" class="label">read</text>
+  <text x="486" y="291" text-anchor="middle" class="small">изменения</text>
+  <text x="486" y="311" text-anchor="middle" class="small">уведомляют UI</text>
+
+  <rect x="64" y="434" width="382" height="166" class="node" fill="#fff5df" stroke="#e5b75f"/>
+  <text x="90" y="474" class="heading">Корень композиции</text>
+  <text x="90" y="510" class="body">main.dart регистрирует Provider-ы</text>
+  <text x="90" y="538" class="body">и создаёт CinemaModel через DI</text>
+  <text x="90" y="575" class="small">Выбор реализации делается здесь</text>
+
+  <rect x="527" y="434" width="382" height="166" class="node" fill="#f0ebff" stroke="#9e85de"/>
+  <text x="553" y="474" class="heading">Интерфейс</text>
+  <text x="553" y="510" class="body">CinemaRepository</text>
+  <text x="553" y="542" class="body">fetch · create · update · delete</text>
+  <text x="553" y="578" class="small">Контракт: что можно запросить</text>
+
+  <path d="M718 359 V434" class="line"/>
+  <rect x="624" y="376" width="188" height="38" rx="9" fill="#f5f7fb"/>
+  <text x="718" y="401" text-anchor="middle" class="label">Future&lt;Result&lt;T&gt;&gt;</text>
+
+  <rect x="991" y="434" width="385" height="166" class="node" fill="#fff0eb" stroke="#e59a7c"/>
+  <text x="1017" y="474" class="heading">Реализация L4</text>
+  <text x="1017" y="510" class="body">MockCinemaRepository</text>
+  <text x="1017" y="542" class="body">Память · задержка 800 мс</text>
+  <text x="1017" y="578" class="small">Возвращает Ok или Err; умеет имитировать сбой</text>
+
+  <path d="M991 516 H909" class="line"/>
+  <rect x="914" y="479" width="72" height="30" rx="8" fill="#f5f7fb"/>
+  <text x="950" y="500" text-anchor="middle" class="label">implements</text>
+
+  <rect x="991" y="668" width="385" height="126" class="node" fill="#f1f3f6" stroke="#9aa7b8"/>
+  <text x="1017" y="708" class="heading">Seed-данные</text>
+  <text x="1017" y="744" class="body">mock_data.dart: фильмы, сеансы, билеты</text>
+  <text x="1017" y="774" class="small">Их читает mock-репозиторий, не UI</text>
+  <path d="M1183 600 V668" class="line"/>
+
+  <rect x="64" y="668" width="845" height="126" class="node" fill="#ffffff" stroke="#cad3df"/>
+  <text x="90" y="708" class="heading">Как проходит запрос</text>
+  <text x="90" y="746" class="body">экран → CinemaModel → CinemaRepository → MockCinemaRepository → mock_data</text>
+  <text x="90" y="777" class="small">Ответ возвращается как Ok(данные) или Err(сообщение); notifyListeners обновляет подписанные экраны</text>
+
+  <path d="M255 359 V434" class="line dashed"/>
+  <text x="267" y="405" class="small">Provider</text>
+  <path d="M446 516 H527" class="line dashed"/>
+  <text x="486" y="500" text-anchor="middle" class="small">DI</text>
+  <path d="M446 555 C650 645 842 645 991 555" class="line dashed"/>
+  <text x="715" y="632" text-anchor="middle" class="small">main.dart предоставляет mock и привязку к интерфейсу</text>
+
+  <rect x="64" y="842" width="1312" height="156" rx="18" fill="#e6f4f1" stroke="#69b99a" stroke-width="2"/>
+  <text x="90" y="882" class="heading">Что изменится на L5</text>
+  <text x="90" y="919" class="body">В main.dart вместо MockCinemaRepository будет выбран HttpCinemaRepository, реализующий тот же CinemaRepository.</text>
+  <text x="90" y="950" class="body">Экраны и CinemaModel продолжат работать через прежний контракт; mock-данные и переключатель демонстрации сбоя будут удалены.</text>
+  <text x="90" y="980" class="small">Mock-зависимость останется только у ProfileScreen для учебной демонстрации и исчезнет вместе с mock-реализацией.</text>
+</svg>

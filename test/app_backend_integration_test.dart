@@ -100,7 +100,7 @@ void main() {
     }
 
     await waitFor(find.text('Test film'));
-    await tester.tap(find.byType(MovieCard));
+    await tester.tap(find.byType(MovieCard).first);
     await tester.pump(const Duration(milliseconds: 350));
     await waitFor(find.text('Выбрать сеанс'));
     await waitFor(find.text('Test hall'));
@@ -153,6 +153,10 @@ void main() {
         isEmpty,
       );
     });
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(seconds: 1)),
+    );
+    await tester.pump(const Duration(seconds: 10));
     await tester.pumpWidget(const SizedBox.shrink());
     router.dispose();
   }, skip: baseUrl.isEmpty);

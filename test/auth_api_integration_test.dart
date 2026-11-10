@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:cinemago/data/auth_api.dart';
 import 'package:cinemago/data/result.dart';
 import 'package:cinemago/data/token_store.dart';
-import 'package:cinemago/models/user_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,10 +44,6 @@ void main() {
 
       expect(await auth.login(email, 'password123'), isA<Ok<void>>());
       expect(await TokenStore().read(), isNotEmpty);
-      final profile = await auth.fetchProfile();
-      expect(profile, isA<Ok<UserProfile>>());
-      expect((profile as Ok<UserProfile>).value.name, 'CinemaGo');
-      expect(profile.value.email, email);
       await auth.logout();
       expect(await tokens.read(), isNull);
     },

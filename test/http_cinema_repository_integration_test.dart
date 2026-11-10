@@ -69,14 +69,15 @@ void main() {
       );
 
       final movies = (await repo.fetchMovies() as Ok).value;
-      expect(movies.single.title, 'Test film');
+      expect(movies.first.title, 'Test film');
 
+      final pagingPrefix = 'PAGING_${DateTime.now().microsecondsSinceEpoch}';
       for (var index = 1; index <= 22; index++) {
         final response = await http.post(
           Uri.parse('$baseUrl/movies'),
           headers: headers,
           body: jsonEncode({
-            'title': 'PAGING_FIXTURE_$index',
+            'title': '${pagingPrefix}_$index',
             'genre': 'Test',
             'durationMin': 90,
             'posterUrl': '',
@@ -88,12 +89,12 @@ void main() {
       final firstPage = (await repo.fetchMovies(
         page: 1,
         limit: 20,
-        search: 'PAGING_FIXTURE',
+        search: pagingPrefix,
       ) as Ok).value;
       final secondPage = (await repo.fetchMovies(
         page: 2,
         limit: 20,
-        search: 'PAGING_FIXTURE',
+        search: pagingPrefix,
       ) as Ok).value;
       expect(firstPage, hasLength(20));
       expect(secondPage, hasLength(2));

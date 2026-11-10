@@ -81,6 +81,8 @@ public static class Db
     {
         var conn = new SqliteConnection(_connectionString);
         conn.Open();
+        // SQLite's built-in LIKE/lower() ignore case for ASCII only; this handles Cyrillic.
+        conn.CreateFunction("ulower", (string? s) => s?.ToLowerInvariant());
         return conn;
     }
 

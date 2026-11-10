@@ -41,13 +41,13 @@ public static class Movies
     {
         page = Math.Max(page, 1);
         limit = Math.Clamp(limit, 1, 100);
-        var pattern = $"%{search}%";
+        var pattern = $"%{search.ToLowerInvariant()}%";
 
         using var conn = Db.Open();
         long total;
         using (var count = conn.Cmd(
                    "SELECT COUNT(*) FROM movies " +
-                   "WHERE title LIKE $pattern OR genre LIKE $pattern",
+                   "WHERE ulower(title) LIKE $pattern OR ulower(genre) LIKE $pattern",
                    ("$pattern", pattern)))
         {
             total = (long)count.ExecuteScalar()!;
@@ -56,7 +56,7 @@ public static class Movies
         var items = new List<Movie>();
         using (var cmd = conn.Cmd(
                    "SELECT id, title, genre, duration_min, poster_url, rating " +
-                   "FROM movies WHERE title LIKE $pattern OR genre LIKE $pattern " +
+                   "FROM movies WHERE ulower(title) LIKE $pattern OR ulower(genre) LIKE $pattern " +
                    "ORDER BY id DESC LIMIT $limit OFFSET $offset",
                    ("$pattern", pattern),
                    ("$limit", limit),

@@ -26,11 +26,7 @@ Future<void> main() async {
   );
   router = createAppRouter(loggedIn: loggedIn, repository: repository);
   runApp(
-    MyApp(
-      auth: AuthApi(apiBase, tokens, onUnauthorized: () => router.go('/login')),
-      router: router,
-      apiBaseUrl: apiBase,
-    ),
+    MyApp(auth: AuthApi(apiBase, tokens), router: router, apiBaseUrl: apiBase),
   );
 }
 
